@@ -77,7 +77,11 @@ def start(
 
 @app.command()
 def stop(bridge_id: int) -> None:
-    bridge = BridgeRecord.load_bridge_by_num(bridge_id)
+    try:
+        bridge = BridgeRecord.load_bridge_by_num(bridge_id)
+    except FileNotFoundError:
+        print("A bridge with this ID does not exist!")
+        exit(1)
     bridge.end_flag = True
     bridge.save_bridge()
 
@@ -95,7 +99,7 @@ def stop(bridge_id: int) -> None:
 
 
 @app.command()
-def clear(bridge_id: int = 0, *, force: bool = False) -> None:
+def clear(bridge_id: int, *, force: bool = False) -> None:
     """Clear the bridge from the history"""
 
     bridge = BridgeRecord.load_bridge_by_num(bridge_id)
