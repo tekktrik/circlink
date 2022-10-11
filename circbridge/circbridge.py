@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+import time
 import signal
 from datetime import datetime, timedelta
 from typer import Typer
@@ -53,10 +54,11 @@ def start(
         bridge.save_bridge()
 
         start_time = datetime.now()
-        error_time = start_time + timedelta(seconds=5)
+        error_time = start_time + timedelta(seconds=10)
 
         while not bridge.confirmed:
             bridge = BridgeRecord.load_bridge_by_num(bridge_id)
+            time.sleep(0.5)  # Slight delay
             if datetime.now() >= error_time:
                 try:
                     os.kill(pid, signal.SIGTERM)
@@ -67,20 +69,23 @@ def start(
     else:  # PID is 0
         while not bridge.process_id:
             bridge = BridgeRecord.load_bridge_by_num(bridge_id)
+            time.sleep(0.3)
         bridge.confirmed = True
         bridge.save_bridge()
         bridge.begin_monitoring()
 
 
 @app.command()
-def stop(*, bridge_id: int = 0) -> None:
+def stop(bridge_id: int = 0) -> None:
     bridge = BridgeRecord.load_bridge_by_num(bridge_id)
     bridge.end_flag = True
     bridge.save_bridge()
 
+    # TODO: call clear command on stopped bridge
+
 
 @app.command()
-def clear(*, bridge_id: int = 0) -> None:
+def clear(bridge_id: int = 0) -> None:
     raise NotImplementedError()
 
 
@@ -90,7 +95,7 @@ def list_bridges() -> None:
 
 
 @app.command()
-def about(*, bridge_id: int = 0) -> None:
+def about(bridge_id: int = 0) -> None:
     raise NotImplementedError()
 
 

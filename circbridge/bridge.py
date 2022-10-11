@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+import time
 import json
 import pathlib
 import shutil
@@ -120,10 +121,11 @@ class BridgeRecord:
         return pathlib.Path(save_filepath)
 
     @classmethod
-    def load_bridge_by_filepath(cls, bridge_filepath: str) -> "BridgeRecord":
+    def _load_bridge_by_filepath(cls, bridge_filepath: str) -> "BridgeRecord":
         """Create a BridgeRecord from a JSON file, by filepath"""
 
         with open(bridge_filepath, mode="r", encoding="utf-8") as bridgefile:
+            #print(bridgefile.read())
             bridge_obj = json.load(bridgefile)
 
         return cls(
@@ -144,7 +146,9 @@ class BridgeRecord:
         """Create a BridgeRecord from a JSON file, by number"""
 
         bridge_filepath = cls.bridge_num_to_filename(bridge_num)
-        return cls.load_bridge_by_filepath(bridge_filepath)
+        bridge = cls._load_bridge_by_filepath(bridge_filepath)
+        bridge._bridge_id = bridge_num
+        return bridge
 
     @staticmethod
     def bridge_num_to_filename(num: int, *, directory: str = BRIDGES_DIRECTORY) -> str:
@@ -180,7 +184,7 @@ class BridgeRecord:
             else self._read_path.parts[-2]
         )
         # TODO: same parent and child names confuse it
-        read_path_basis = pathlib.Path(read_path_basis_str).absolute()
+        read_path_basis = pathlib.Path(os.path.join("..", read_path_basis_str)).absolute()
 
         if self._clean_folder:
             shutil.rmtree(write_path)
@@ -190,7 +194,12 @@ class BridgeRecord:
             if not self._skip_presave:
                 self._copy_file(write_path, read_file, read_path_basis)
 
-        while not self.load_bridge_by_num(self._bridge_id).end_flag:
+        temp_bridge = self.load_bridge_by_num(self._bridge_id)
+        while not temp_bridge.end_flag:
+
+            #print(temp_bridge.end_flag)
+            temp_bridge = self.load_bridge_by_num(self._bridge_id)
+            time.sleep(0.1)
 
             # Detect new files
             read_files = (
@@ -226,7 +235,7 @@ class BridgeRecord:
     ):
         absy = read_basis.absolute()
         save_file_path = os.path.join(
-            str(write_path), read_file.relative_to(str(absy))
+            str(write_path), read_file.relative_to(absy.resolve())
         )
         shutil.copyfile(str(read_file), save_file_path)
 
