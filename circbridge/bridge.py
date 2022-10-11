@@ -29,6 +29,7 @@ class BridgeRecord:
         proc_id: int = 0,
         confirmed: bool = False,
         end_flag: bool = False,
+        stopped: bool = False,
     ) -> None:
 
         self._read_path = pathlib.Path(read_path)
@@ -42,6 +43,7 @@ class BridgeRecord:
         self.process_id: int = proc_id
         self.confirmed: bool = confirmed
         self.end_flag: bool = end_flag
+        self._stopped = stopped
 
         if contents_only and self._read_path.is_file():
             raise OSError(
@@ -94,6 +96,10 @@ class BridgeRecord:
     @property
     def wipe_dest(self) -> bool:
         return self._wipe_dest
+    
+    @property
+    def stopped(self) -> bool:
+        return self._stopped
 
     def save_bridge(self, *, save_directory: str = BRIDGES_DIRECTORY) -> pathlib.Path:
         """Save the bridge object as a file in the specified folder"""
@@ -109,6 +115,7 @@ class BridgeRecord:
             "proc_id": self.process_id,
             "confirmed": self.confirmed,
             "end_flag": self.end_flag,
+            "stopped": self._stopped,
         }
 
         save_filepath = self.bridge_num_to_filename(
@@ -139,6 +146,7 @@ class BridgeRecord:
             proc_id=bridge_obj["proc_id"],
             confirmed=bridge_obj["confirmed"],
             end_flag=bridge_obj["end_flag"],
+            stopped=bridge_obj["stopped"],
         )
 
     @classmethod
@@ -226,6 +234,9 @@ class BridgeRecord:
                 if modtime > last_modtime:
                     self._copy_file(write_path, file, read_path_basis)
                     update_map[file] = modtime
+
+        self._stopped = True
+        self.save_bridge()
 
     def _copy_file(
         self,

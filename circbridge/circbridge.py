@@ -54,7 +54,7 @@ def start(
         bridge.save_bridge()
 
         start_time = datetime.now()
-        error_time = start_time + timedelta(seconds=10)
+        error_time = start_time + timedelta(seconds=5)
 
         while not bridge.confirmed:
             bridge = BridgeRecord.load_bridge_by_num(bridge_id)
@@ -76,17 +76,35 @@ def start(
 
 
 @app.command()
-def stop(bridge_id: int = 0) -> None:
+def stop(bridge_id: int) -> None:
     bridge = BridgeRecord.load_bridge_by_num(bridge_id)
     bridge.end_flag = True
     bridge.save_bridge()
 
-    # TODO: call clear command on stopped bridge
+    start_time = datetime.now()
+    error_time = start_time + timedelta(seconds=5)
+
+    while not bridge.stopped:
+        bridge = BridgeRecord.load_bridge_by_num(bridge_id)
+        time.sleep(0.5)  # Slight delay
+        if datetime.now() >= error_time:
+            print("Bridge could not be stopped!")
+            exit(1)
+
+    clear(bridge_id)
 
 
 @app.command()
-def clear(bridge_id: int = 0) -> None:
-    raise NotImplementedError()
+def clear(bridge_id: int = 0, *, force: bool = False) -> None:
+    """Clear the bridge from the history"""
+
+    bridge = BridgeRecord.load_bridge_by_num(bridge_id)
+    if not bridge.stopped and not force:
+        print("Can only clear bridges marked as inactive.")
+        print("To force clear this bridge, use the --force option.")
+        exit(1)
+
+    os.remove(bridge.bridge_num_to_filename(bridge_id))
 
 
 @app.command(name="list")
