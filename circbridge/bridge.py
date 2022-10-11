@@ -96,7 +96,7 @@ class BridgeRecord:
     @property
     def wipe_dest(self) -> bool:
         return self._wipe_dest
-    
+
     @property
     def stopped(self) -> bool:
         return self._stopped
@@ -132,7 +132,7 @@ class BridgeRecord:
         """Create a BridgeRecord from a JSON file, by filepath"""
 
         with open(bridge_filepath, mode="r", encoding="utf-8") as bridgefile:
-            #print(bridgefile.read())
+            # print(bridgefile.read())
             bridge_obj = json.load(bridgefile)
 
         return cls(
@@ -192,7 +192,9 @@ class BridgeRecord:
             else self._read_path.parts[-2]
         )
         # TODO: same parent and child names confuse it
-        read_path_basis = pathlib.Path(os.path.join("..", read_path_basis_str)).absolute()
+        read_path_basis = pathlib.Path(
+            os.path.join("..", read_path_basis_str)
+        ).absolute()
 
         if self._clean_folder:
             shutil.rmtree(write_path)
@@ -205,7 +207,7 @@ class BridgeRecord:
         temp_bridge = self.load_bridge_by_num(self._bridge_id)
         while not temp_bridge.end_flag:
 
-            #print(temp_bridge.end_flag)
+            # print(temp_bridge.end_flag)
             temp_bridge = self.load_bridge_by_num(self._bridge_id)
             time.sleep(0.1)
 
@@ -256,4 +258,8 @@ class BridgeRecord:
         read_file: pathlib.Path,
         read_basis: pathlib.Path,
     ):
-        os.remove(os.path.join(str(write_path), read_file.relative_to(str(read_basis.absolute()))))
+        os.remove(
+            os.path.join(
+                str(write_path), read_file.relative_to(str(read_basis.absolute()))
+            )
+        )
