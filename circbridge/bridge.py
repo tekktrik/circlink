@@ -165,11 +165,14 @@ class BridgeRecord:
     def begin_monitoring(self) -> None:
         """Monitor the listed file/directory for changes"""
 
+        # Ensure the write path exists
+        os.makedirs(self._write_path, exist_ok=True)
+
+        # Wipe the destination (write path) recursively
         if self._wipe_dest:
             shutil.rmtree(self._write_path)
 
-        os.makedirs(self._write_path, exist_ok=True)
-
+        # Get the list of files to monitor and prepare the map dictionary
         read_files = (
             [self._read_path]
             if self._read_path.is_file()
@@ -177,23 +180,26 @@ class BridgeRecord:
         )
         update_map: Dict[pathlib.Path, float] = {}
 
-        if self._contents_only:
+        # Allow for contents-only options
+        if self._read_path.is_file() or self._contents_only:
             write_path = self._write_path
         else:
-            new_folder_name = os.path.basename(os.path.split(self._read_path)[0])
+            new_folder_name = os.path.basename(self._read_path)
             write_path_str = os.path.join(self._write_path, new_folder_name)
             os.makedirs(write_path_str, exist_ok=True)
             write_path = pathlib.Path(write_path_str)
 
-        wacky = self._read_path.is_dir()
         read_path_basis_str = (
             self._read_path.name
             if self._read_path.is_dir()
             else self._read_path.parts[-2]
         )
-        # TODO: same parent and child names confuse it
+
+        if self._read_path.is_file():
+            read_path_basis_str = os.path.join("..", read_path_basis_str)
+
         read_path_basis = pathlib.Path(
-            os.path.join("..", read_path_basis_str)
+            read_path_basis_str
         ).absolute()
 
         if self._clean_folder:
@@ -232,11 +238,12 @@ class BridgeRecord:
                     del update_map[file]
 
                 # Detect changes
-                modtime = file.stat().st_mode
+                modtime = file.stat().st_mtime
                 if modtime > last_modtime:
                     self._copy_file(write_path, file, read_path_basis)
                     update_map[file] = modtime
 
+        self.end_flag = True
         self._stopped = True
         self.save_bridge()
 
@@ -246,9 +253,9 @@ class BridgeRecord:
         read_file: pathlib.Path,
         read_basis: pathlib.Path,
     ):
-        absy = read_basis.absolute()
+        absy = read_basis.absolute().resolve()
         save_file_path = os.path.join(
-            str(write_path), read_file.relative_to(absy.resolve())
+            str(write_path.resolve()), read_file.relative_to(absy.resolve())
         )
         shutil.copyfile(str(read_file), save_file_path)
 
