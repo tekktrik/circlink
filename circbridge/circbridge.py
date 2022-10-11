@@ -19,12 +19,29 @@ def _ensure_bridges_folder() -> None:
         os.mkdir(BRIDGES_DIRECTORY)
 
 
-
 @app.command()
-def start(read_path: str, write_path: str, *, name: str = "") -> None:
+def start(
+    read_path: str,
+    write_path: str,
+    *,
+    name: str = "",
+    contents_only: bool = False,
+    clean_folder: bool = False,
+    wipe_dest: bool = False,
+    skip_presave: bool = False
+) -> None:
     """Start a CiruitPython bridge"""
 
-    bridge = BridgeRecord(read_path, write_path, name=name)
+    bridge = BridgeRecord(
+        read_path,
+        write_path,
+        name=name,
+        contents_only=contents_only,
+        clean_folder=clean_folder,
+        wipe_dest=wipe_dest,
+        skip_presave=skip_presave,
+    )
+
     bridge_id = bridge.bridge_id
     bridge.save_bridge()
 
@@ -52,29 +69,29 @@ def start(read_path: str, write_path: str, *, name: str = "") -> None:
             bridge = BridgeRecord.load_bridge_by_num(bridge_id)
         bridge.confirmed = True
         bridge.save_bridge()
-
         bridge.begin_monitoring()
 
 
+@app.command()
+def stop(*, bridge_id: int = 0) -> None:
+    bridge = BridgeRecord.load_bridge_by_num(bridge_id)
+    bridge.end_flag = True
+    bridge.save_bridge()
+
 
 @app.command()
-def stop(id: int = 0, *, name: str = "") -> None:
-    pass
-
-
-@app.command()
-def clear(id: int = 0, *, name: str = "") -> None:
-    pass
+def clear(*, bridge_id: int = 0) -> None:
+    raise NotImplementedError()
 
 
 @app.command(name="list")
 def list_bridges() -> None:
-    pass
+    raise NotImplementedError()
 
 
 @app.command()
-def about(id: int = 0, *, name: str = "") -> None:
-    pass
+def about(*, bridge_id: int = 0) -> None:
+    raise NotImplementedError()
 
 
 def main() -> None:
