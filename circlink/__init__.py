@@ -2,21 +2,29 @@
 #
 # SPDX-License-Identifier: MIT
 
+"""
+The main script handling CLI interactions for ``circlink``
+
+Author(s): Alec Delaney (Tekktrik)
+"""
+
 import os
 import sys
 import time
 import signal
 import pathlib
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List, Tuple, TypeAlias
 from typing_extensions import Literal
 from typer import Typer
 from circup import find_device
 from tabulate import tabulate
 from circlink.link import LINKS_DIRECTORY, CircuitPythonLink
 
+_TableRowEntry: TypeAlias = Tuple[int, str, bool, pathlib.Path, pathlib.Path, bool, int]
 
 __version__ = "0.0.0+auto.0"
+
 
 app = Typer()
 
@@ -123,6 +131,7 @@ def _stop_link(link_id: int) -> Literal[True]:
 
 @app.command()
 def stop(link_id: str) -> bool:
+    """Stop a CircuitPython link"""
 
     if link_id == "all":
         while stop("last"):
@@ -154,7 +163,7 @@ def _clear_link(link_id: int, *, force: bool = False) -> bool:
         print("To force clear this link, use the --force option.")
         sys.exit(1)
 
-    os.remove(link.link_num_to_filename(link_id))
+    os.remove(link.link_id_to_filename(link_id))
     print(f"Removed link #{link_id} from history")
 
     return True
@@ -181,10 +190,9 @@ def clear(link_id: str, *, force: bool = False) -> None:
     return _clear_link(link_id, force=force)
 
 
-# TODO: Further specify type
 def _get_links_list(
     pattern: str, *, abs_paths: bool = False, name: str = ""
-) -> List[Tuple]:
+) -> _TableRowEntry:
 
     link_paths = pathlib.Path(LINKS_DIRECTORY).glob(pattern)
 
@@ -252,12 +260,16 @@ def list_links(link_id: str, *, abs_paths: bool = False) -> None:
 
 @app.command()
 def about() -> None:
+    """Display information about ``circlink``"""
+
     print("Originally built with love by Tekktrik")
     print("Happy hackin'!")
     sys.exit(0)
 
 
 def main() -> None:
+    """Main function that runs when ``circlink`` is called as a CLI"""
+
     _ensure_links_folder()
     app()
 

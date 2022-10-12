@@ -2,13 +2,19 @@
 #
 # SPDX-License-Identifier: MIT
 
+"""
+Information and methods pertaining to links and link files
+
+Author(s): Alec Delaney (Tekktrik)
+"""
+
 import os
 import sys
 import time
 import json
 import pathlib
 import shutil
-from typing import Dict, List
+from typing import Dict, List, Union
 
 PACKAGE_DIRECTORY = os.path.abspath(os.path.split(__file__)[0])
 LINKS_DIRECTORY = os.path.join(PACKAGE_DIRECTORY, "..", "links")
@@ -64,34 +70,42 @@ class CircuitPythonLink:
 
     @property
     def read_path(self) -> pathlib.Path:
+        """The read path for the link"""
         return self._read_path
 
     @property
     def write_path(self) -> pathlib.Path:
+        """The write path for the link"""
         return self._write_path
 
     @property
     def name(self) -> str:
+        """The link name"""
         return self._name
 
     @property
     def recursive(self) -> bool:
+        """Whether the link is recursive for the read path"""
         return self._recursive
 
     @property
     def link_id(self) -> int:
+        """The link ID"""
         return self._link_id
 
     @property
     def skip_presave(self) -> bool:
+        """Whether a forced save was enacted at the start of the link"""
         return self._skip_presave
 
     @property
     def wipe_dest(self) -> bool:
+        """Whether the wrie path was recursively wiped before starting the link"""
         return self._wipe_dest
 
     @property
     def stopped(self) -> bool:
+        """Whether the link is marked has stopped"""
         return self._stopped
 
     def save_link(self, *, save_directory: str = LINKS_DIRECTORY) -> pathlib.Path:
@@ -110,7 +124,7 @@ class CircuitPythonLink:
             "stopped": self._stopped,
         }
 
-        save_filepath = self.link_num_to_filename(
+        save_filepath = self.link_id_to_filename(
             self._link_id, directory=save_directory
         )
 
@@ -139,9 +153,7 @@ class CircuitPythonLink:
             stopped=link_obj["stopped"],
         )
 
-        # TODO: this should probably be its own function
-        link_path = pathlib.Path(link_filepath).name
-        link._link_id = int(link_path[4:-5])
+        link._link_id = CircuitPythonLink.link_id_to_filename(link_filepath)
 
         return link
 
@@ -149,12 +161,33 @@ class CircuitPythonLink:
     def load_link_by_num(cls, link_num: int) -> "CircuitPythonLink":
         """Create a CircuitPythonLink from a JSON file, by number"""
 
-        link_filepath = cls.link_num_to_filename(link_num)
+        link_filepath = cls.link_id_to_filename(link_num)
         return cls.load_link_by_filepath(link_filepath)
 
     @staticmethod
-    def link_num_to_filename(num: int, *, directory: str = LINKS_DIRECTORY) -> str:
+    def link_id_to_filename(num: int, *, directory: str = LINKS_DIRECTORY) -> str:
+        """Create a link filename from a link ID"""
         return os.path.join(directory, "link" + str(num) + ".json")
+
+    @staticmethod
+    def filename_to_link_id(filepath: Union[pathlib.Path, str]) -> int:
+        """Get a link ID from a filename"""
+
+        if isinstance(filepath, str):
+            filepath = pathlib.Path(filepath)
+
+        return int(filepath.name[4:-5])
+
+    def _get_files_monitored(self):
+
+        file_pattern = self._read_path.name
+        file_parent = self._read_path.parent
+
+        return list(
+            file_parent.rglob(file_pattern)
+            if self._recursive
+            else file_parent.glob(file_pattern)
+        )
 
     def begin_monitoring(self) -> None:
         """Monitor the listed file(s) for changes"""
@@ -166,13 +199,7 @@ class CircuitPythonLink:
         if self._wipe_dest:
             shutil.rmtree(self._write_path)
 
-        file_pattern = self._read_path.name
-        file_parent = self._read_path.parent
-        read_files = list(
-            file_parent.rglob(file_pattern)
-            if self._recursive
-            else file_parent.glob(file_pattern)
-        )
+        read_files = self._get_files_monitored()
         update_map: Dict[pathlib.Path, float] = {}
 
         read_path_basis_str = (
@@ -197,12 +224,7 @@ class CircuitPythonLink:
             time.sleep(0.1)
 
             # Detect new files
-            # TODO: making getting files into its own function
-            read_files = list(
-                file_parent.rglob(file_pattern)
-                if self._recursive
-                else file_parent.glob(file_pattern)
-            )
+            read_files = self._get_files_monitored()
             new_files: List[pathlib.Path] = []
             for file in read_files:
                 if file not in update_map:
