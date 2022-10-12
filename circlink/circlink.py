@@ -16,6 +16,8 @@ from tabulate import tabulate
 from circlink.link import LINKS_DIRECTORY, CircuitPythonLink
 
 
+__version__ = "0.0.0+auto.0"
+
 app = Typer()
 
 

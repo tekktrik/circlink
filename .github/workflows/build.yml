@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2022 Alec Delaney
+#
+# SPDX-License-Identifier: MIT
+
+name: Build CI
+
+on: [pull_request, push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up latest Python 3
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
+    - name: Check Python version
+      run: |
+        python3 --version
+    - name: Checkout repo
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: Install dev tools
+      run: |
+        pip install -r requirements-dev.txt
+    - name: Run pre-commit hooks
+      run: |
+        pre-commit run --all-files
+    - name: Build docs
+      working-directory: docs
+      run: sphinx-build -E -W -b html . _build/html
+    - name: Build Python package
+      run: |
+        pip install --upgrade build twine
+        for file in $(find -not -path "./.*" -not -path "./docs*" \( -name "*.py" -o -name "*.toml" \) ); do
+            sed -i -e "s/0.0.0+auto.0/1.2.3/" $file;
+        done;
+        python -m build
+        twine check dist/*
