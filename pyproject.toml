@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: 2022 Alec Delaney
+#
+# SPDX-License-Identifier: MIT
+
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "setuptools-scm",
+]
+
+[project]
+name = "circlink"
+description = "Tool for writing code locally and auto-pushing to CircuitPython boards"
+version = "0.0.0+auto.0"
+readme = "README.rst"
+authors = [
+    {name = "Alec Delaney", email = "tekktrik@gmail.com"}
+]
+urls = {Homepage = "https://github.com/tekktrik/circlink.git"}
+keywords = [
+    "adafruit",
+    "circuitpython",
+    "tool",
+    "autosave",
+    "autopush",
+    "circlink",
+    "bridge",
+]
+license = {text = "MIT"}
+classifiers = [
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Embedded Systems",
+    "Topic :: System :: Hardware",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+dynamic = ["dependencies", "optional-dependencies"]
+
+[project.scripts]
+circlink = "circlink:main"
+
+[tool.setuptools]
+py-modules = ["circlink"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+optional-dependencies = {dev = {file = ["requirements-dev.txt"]}}

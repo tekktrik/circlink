@@ -106,7 +106,7 @@ class CircuitPythonLink:
             "skip_presave": self._skip_presave,
             "proc_id": self.process_id,
             "confirmed": self.confirmed,
-            "end_flag": self.end_flag,
+            "end#_flag": self.end_flag,
             "stopped": self._stopped,
         }
 
