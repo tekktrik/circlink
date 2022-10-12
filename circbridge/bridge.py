@@ -22,8 +22,7 @@ class BridgeRecord:
         write_path: str,
         *,
         name: str = "",
-        contents_only: bool = False,
-        clean_folder: bool = False,
+        recursive: bool = False,
         wipe_dest: bool = False,
         skip_presave: bool = False,
         proc_id: int = 0,
@@ -34,9 +33,15 @@ class BridgeRecord:
 
         self._read_path = pathlib.Path(read_path)
         self._write_path = pathlib.Path(write_path)
+
+        if not self._read_path.exists() and not self._read_path.parent.is_dir():
+            print(
+                "Read path is not valid, please reference a specific file or glob pattern for files"
+            )
+            exit(1)
+
         self._name = name
-        self._contents_only = contents_only
-        self._clean_folder = clean_folder
+        self._recursive = recursive
         self._wipe_dest = wipe_dest
         self._skip_presave = skip_presave
         self._bridge_id = self.get_next_bridge_id()
@@ -44,16 +49,6 @@ class BridgeRecord:
         self.confirmed: bool = confirmed
         self.end_flag: bool = end_flag
         self._stopped = stopped
-
-        if contents_only and self._read_path.is_file():
-            raise OSError(
-                "Contents only option cannot be used when the source is a file"
-            )
-
-        if clean_folder and (
-            self._read_path.is_file() or (self._read_path.is_dir() and contents_only)
-        ):
-            raise OSError("Wiping endpoint can only be used to wipe a folder source")
 
     @staticmethod
     def get_next_bridge_id() -> int:
@@ -78,16 +73,12 @@ class BridgeRecord:
         return self._name
 
     @property
+    def recursive(self) -> bool:
+        return self._recursive
+
+    @property
     def bridge_id(self) -> int:
         return self._bridge_id
-
-    @property
-    def contents_only(self) -> bool:
-        return self._contents_only
-
-    @property
-    def clean_folder(self) -> bool:
-        return self._clean_folder
 
     @property
     def skip_presave(self) -> bool:
@@ -108,8 +99,7 @@ class BridgeRecord:
             "name": self._name,
             "read": str(self._read_path.absolute()),
             "write": str(self._write_path.absolute()),
-            "contents_only": self._contents_only,
-            "clean_folder": self._clean_folder,
+            "recursive": self._recursive,
             "wipe_dest": self._wipe_dest,
             "skip_presave": self._skip_presave,
             "proc_id": self.process_id,
@@ -139,8 +129,7 @@ class BridgeRecord:
             name=bridge_obj["name"],
             read_path=bridge_obj["read"],
             write_path=bridge_obj["write"],
-            contents_only=bridge_obj["contents_only"],
-            clean_folder=bridge_obj["clean_folder"],
+            recursive=bridge_obj["recursive"],
             wipe_dest=bridge_obj["wipe_dest"],
             skip_presave=bridge_obj["skip_presave"],
             proc_id=bridge_obj["proc_id"],
@@ -165,29 +154,21 @@ class BridgeRecord:
     def begin_monitoring(self) -> None:
         """Monitor the listed file/directory for changes"""
 
-        # Ensure the write path exists
-        os.makedirs(self._write_path, exist_ok=True)
-
         # Wipe the destination (write path) recursively
         if self._wipe_dest:
             shutil.rmtree(self._write_path)
 
-        # Get the list of files to monitor and prepare the map dictionary
-        read_files = (
-            [self._read_path]
-            if self._read_path.is_file()
-            else list(self._read_path.rglob("*"))
+        # Ensure the write path exists
+        os.makedirs(self._write_path, exist_ok=True)
+
+        file_pattern = self._read_path.name
+        file_parent = self._read_path.parent
+        read_files = list(
+            file_parent.rglob(file_pattern)
+            if self._recursive
+            else file_parent.glob(file_pattern)
         )
         update_map: Dict[pathlib.Path, float] = {}
-
-        # Allow for contents-only options
-        if self._read_path.is_file() or self._contents_only:
-            write_path = self._write_path
-        else:
-            new_folder_name = os.path.basename(self._read_path)
-            write_path_str = os.path.join(self._write_path, new_folder_name)
-            os.makedirs(write_path_str, exist_ok=True)
-            write_path = pathlib.Path(write_path_str)
 
         read_path_basis_str = (
             self._read_path.name
@@ -195,20 +176,14 @@ class BridgeRecord:
             else self._read_path.parts[-2]
         )
 
-        if self._read_path.is_file():
-            read_path_basis_str = os.path.join("..", read_path_basis_str)
-
-        read_path_basis = pathlib.Path(
-            read_path_basis_str
-        ).absolute()
-
-        if self._clean_folder:
-            shutil.rmtree(write_path)
+        read_path_basis_str = os.path.join("..", read_path_basis_str)
 
         for read_file in read_files:
             update_map[read_file] = read_file.stat().st_mtime
             if not self._skip_presave:
-                self._copy_file(write_path, read_file, read_path_basis)
+                self._copy_file(self._write_path, read_file)
+
+        marked_delete = []
 
         temp_bridge = self.load_bridge_by_num(self._bridge_id)
         while not temp_bridge.end_flag:
@@ -218,10 +193,11 @@ class BridgeRecord:
             time.sleep(0.1)
 
             # Detect new files
-            read_files = (
-                [self._read_path]
-                if self._read_path.is_file()
-                else list(self._read_path.rglob("*"))
+            # TODO: making getting files into its own function
+            read_files = list(
+                file_parent.rglob(file_pattern)
+                if self._recursive
+                else file_parent.glob(file_pattern)
             )
             new_files: List[pathlib.Path] = []
             for file in read_files:
@@ -229,19 +205,30 @@ class BridgeRecord:
                     new_files.append(file)
             for file in new_files:
                 update_map[file] = file.stat().st_mtime
+                self._copy_file(self.write_path, file)
+            new_files = []
 
             for file, last_modtime in update_map.items():
 
                 # Detect deleted
                 if not file.exists():
-                    self._delete_file(write_path, file, read_path_basis)
-                    del update_map[file]
+                    marked_delete.append(file)
+                    continue
 
                 # Detect changes
                 modtime = file.stat().st_mtime
                 if modtime > last_modtime:
-                    self._copy_file(write_path, file, read_path_basis)
+                    self._copy_file(self._write_path, file)
                     update_map[file] = modtime
+
+            # Delete marked files
+            for file in marked_delete:
+                self._delete_file(self._write_path, file)
+                try:
+                    del update_map[file]
+                except KeyError:
+                    pass
+            marked_delete = []
 
         self.end_flag = True
         self._stopped = True
@@ -251,22 +238,23 @@ class BridgeRecord:
         self,
         write_path: pathlib.Path,
         read_file: pathlib.Path,
-        read_basis: pathlib.Path,
     ):
-        absy = read_basis.absolute().resolve()
-        save_file_path = os.path.join(
-            str(write_path.resolve()), read_file.relative_to(absy.resolve())
-        )
-        shutil.copyfile(str(read_file), save_file_path)
+        read_file_relative = read_file.relative_to(os.getcwd())
+        file_dest = write_path / read_file_relative
+
+        if not file_dest.exists():
+            os.makedirs(os.path.join(str(file_dest.parent.absolute())), exist_ok=True)
+
+        shutil.copyfile(str(read_file.resolve()), file_dest.resolve())
 
     def _delete_file(
         self,
         write_path: pathlib.Path,
         read_file: pathlib.Path,
-        read_basis: pathlib.Path,
     ):
-        os.remove(
-            os.path.join(
-                str(write_path), read_file.relative_to(str(read_basis.absolute()))
-            )
-        )
+
+        read_file_relative = read_file.relative_to(os.getcwd())
+        file_dest = write_path / read_file_relative
+
+        if file_dest.resolve().exists():
+            os.remove(file_dest.resolve())

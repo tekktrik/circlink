@@ -26,19 +26,21 @@ def start(
     write_path: str,
     *,
     name: str = "",
-    contents_only: bool = False,
-    clean_folder: bool = False,
+    recursive: bool = False,
     wipe_dest: bool = False,
     skip_presave: bool = False
 ) -> None:
     """Start a CiruitPython bridge"""
 
+    if "*" not in read_path and recursive:
+        print("--recursive can only be used with glob patterns!")
+        exit(1)
+
     bridge = BridgeRecord(
         read_path,
         write_path,
         name=name,
-        contents_only=contents_only,
-        clean_folder=clean_folder,
+        recursive=recursive,
         wipe_dest=wipe_dest,
         skip_presave=skip_presave,
     )
