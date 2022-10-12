@@ -6,6 +6,7 @@ import os
 import time
 import signal
 from datetime import datetime, timedelta
+from typing_extensions import Literal
 from typer import Typer
 from circlink.link import LINKS_DIRECTORY, CircuitPythonLink
 
@@ -77,13 +78,14 @@ def start(
         link.begin_monitoring()
 
 
-@app.command()
-def stop(link_id: int) -> None:
+def _stop_link(link_id: int) -> Literal[True]:
+
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
     except FileNotFoundError:
         print("A link with this ID does not exist!")
         exit(1)
+
     link.end_flag = True
     link.save_link()
 
@@ -97,8 +99,23 @@ def stop(link_id: int) -> None:
             print("Link could not be stopped!")
             exit(1)
 
+    print(f"Stopped link #{link_id}")
     clear(link_id)
+    return True
 
+
+@app.command()
+def stop(link_id: str) -> bool:
+
+    if link_id == "all":
+        while stop("last"):
+            pass
+        return True
+    if link_id == "last":
+        link_id = str(CircuitPythonLink.get_next_link_id() - 1)
+        if link_id == "0":
+            return False
+    return _stop_link(int(link_id))
 
 @app.command()
 def clear(link_id: int, *, force: bool = False) -> None:
@@ -111,6 +128,7 @@ def clear(link_id: int, *, force: bool = False) -> None:
         exit(1)
 
     os.remove(link.link_num_to_filename(link_id))
+    print(f"Removed link #{link_id} from history")
 
 
 @app.command(name="list")
