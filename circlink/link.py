@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
+import sys
 import time
 import json
 import pathlib
@@ -13,6 +14,7 @@ PACKAGE_DIRECTORY = os.path.abspath(os.path.split(__file__)[0])
 LINKS_DIRECTORY = os.path.join(PACKAGE_DIRECTORY, "..", "links")
 
 
+# pylint: disable=too-many-instance-attributes
 class CircuitPythonLink:
     """Thelink to the device"""
 
@@ -38,7 +40,7 @@ class CircuitPythonLink:
             print(
                 "Read path is not valid, please reference a specific file or glob pattern for files"
             )
-            exit(1)
+            sys.exit(1)
 
         self._name = name
         self._recursive = recursive
@@ -118,13 +120,13 @@ class CircuitPythonLink:
         return pathlib.Path(save_filepath)
 
     @classmethod
-    def _load_link_by_filepath(cls, link_filepath: str) -> "CircuitPythonLink":
+    def load_link_by_filepath(cls, link_filepath: str) -> "CircuitPythonLink":
         """Create a CircuitPythonLink from a JSON file, by filepath"""
 
         with open(link_filepath, mode="r", encoding="utf-8") as linkfile:
             link_obj = json.load(linkfile)
 
-        return cls(
+        link = cls(
             name=link_obj["name"],
             read_path=link_obj["read"],
             write_path=link_obj["write"],
@@ -137,14 +139,18 @@ class CircuitPythonLink:
             stopped=link_obj["stopped"],
         )
 
+        # TODO: this should probably be its own function
+        link_path = pathlib.Path(link_filepath).name
+        link._link_id = int(link_path[4:-5])
+
+        return link
+
     @classmethod
     def load_link_by_num(cls, link_num: int) -> "CircuitPythonLink":
         """Create a CircuitPythonLink from a JSON file, by number"""
 
         link_filepath = cls.link_num_to_filename(link_num)
-        link = cls._load_link_by_filepath(link_filepath)
-        link._link_id = link_num
-        return link
+        return cls.load_link_by_filepath(link_filepath)
 
     @staticmethod
     def link_num_to_filename(num: int, *, directory: str = LINKS_DIRECTORY) -> str:

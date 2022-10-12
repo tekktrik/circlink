@@ -3,11 +3,16 @@
 # SPDX-License-Identifier: MIT
 
 import os
+import sys
 import time
 import signal
+import pathlib
 from datetime import datetime, timedelta
+from typing import List, Tuple
 from typing_extensions import Literal
 from typer import Typer
+from circup import find_device
+from tabulate import tabulate
 from circlink.link import LINKS_DIRECTORY, CircuitPythonLink
 
 
@@ -26,6 +31,7 @@ def start(
     read_path: str,
     write_path: str,
     *,
+    path: bool = False,
     name: str = "",
     recursive: bool = False,
     wipe_dest: bool = False,
@@ -35,7 +41,14 @@ def start(
 
     if "*" not in read_path and recursive:
         print("--recursive can only be used with glob patterns!")
-        exit(1)
+        sys.exit(1)
+
+    if not path:
+        device_path = find_device()
+        if not device_path:
+            print("Cound not auto-detect board path!")
+            sys.exit(1)
+        write_path = os.path.join(device_path, write_path)
 
     link = CircuitPythonLink(
         read_path,
@@ -86,7 +99,7 @@ def _stop_link(link_id: int) -> Literal[True]:
         link = CircuitPythonLink.load_link_by_num(link_id)
     except FileNotFoundError:
         print("A link with this ID does not exist!")
-        exit(1)
+        sys.exit(1)
 
     link.end_flag = True
     link.save_link()
@@ -99,7 +112,7 @@ def _stop_link(link_id: int) -> Literal[True]:
         time.sleep(0.5)  # Slight delay
         if datetime.now() >= error_time:
             print("Link could not be stopped!")
-            exit(1)
+            sys.exit(1)
 
     print(f"Stopped link #{link_id}")
     clear(link_id)
@@ -132,12 +145,12 @@ def _clear_link(link_id: int, *, force: bool = False) -> bool:
         link = CircuitPythonLink.load_link_by_num(link_id)
     except FileNotFoundError:
         print("A link with this ID does not exist!")
-        exit(1)
+        sys.exit(1)
 
     if not link.stopped and not force:
         print("Can only clear links marked as inactive.")
         print("To force clear this link, use the --force option.")
-        exit(1)
+        sys.exit(1)
 
     os.remove(link.link_num_to_filename(link_id))
     print(f"Removed link #{link_id} from history")
@@ -166,19 +179,80 @@ def clear(link_id: str, *, force: bool = False) -> None:
     return _clear_link(link_id, force=force)
 
 
+# TODO: Further specify type
+def _get_links_list(
+    pattern: str, *, abs_paths: bool = False, name: str = ""
+) -> List[Tuple]:
+
+    link_paths = pathlib.Path(LINKS_DIRECTORY).glob(pattern)
+
+    link_infos = [
+        (
+            "ID",
+            "Name",
+            "Running?",
+            "Read Path",
+            "Write Path",
+            "Recursive?",
+            "Process ID",
+        )
+    ]
+    for link_path in link_paths:
+        link = CircuitPythonLink.load_link_by_filepath(str(link_path))
+        link_id = link.link_id
+        link_name = "---" if not link.name else link.name
+        link_running = not link.stopped
+        link_read = (
+            link.read_path.resolve().relative_to(os.getcwd())
+            if not abs_paths
+            else link.read_path.resolve().absolute()
+        )
+        link_write = link.write_path.absolute().resolve()
+        link_recursive = link.recursive
+        link_proc = link.process_id
+        if not name or link_name == name:
+            link_infos.append(
+                (
+                    link_id,
+                    link_name,
+                    link_running,
+                    link_read,
+                    link_write,
+                    link_recursive,
+                    link_proc,
+                )
+            )
+
+    return link_infos
+
+
 @app.command(name="list")
-def list_links() -> None:
-    raise NotImplementedError()
+def list_links(link_id: str, *, abs_paths: bool = False) -> None:
+    """List all of the tracked links"""
 
+    if link_id == "all":
+        pattern = "*"
+    elif link_id == "last":
+        link_id = str(CircuitPythonLink.get_next_link_id() - 1)
+        pattern = "link" + link_id + ".json"
+        if link_id == "0":
+            pattern = "*"
+    else:
+        try:
+            int(link_id)
+            pattern = "link" + link_id + ".json"
+        except ValueError:
+            print('Please use a valid link ID, "last", or "all" (default)')
 
-@app.command()
-def details(link_id: int = 0) -> None:
-    raise NotImplementedError()
+    link_infos = _get_links_list(pattern, abs_paths=abs_paths)
+    print(tabulate(link_infos, headers="firstrow"))
 
 
 @app.command()
 def about() -> None:
-    raise NotImplementedError()
+    print("Originally built with love by Tekktrik")
+    print("Happy hackin'!")
+    sys.exit(0)
 
 
 def main() -> None:
