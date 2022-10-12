@@ -172,7 +172,12 @@ def list_links() -> None:
 
 
 @app.command()
-def about(link_id: int = 0) -> None:
+def details(link_id: int = 0) -> None:
+    raise NotImplementedError()
+
+
+@app.command()
+def about() -> None:
     raise NotImplementedError()
 
 
