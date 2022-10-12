@@ -29,7 +29,7 @@ def start(
     name: str = "",
     recursive: bool = False,
     wipe_dest: bool = False,
-    skip_presave: bool = False
+    skip_presave: bool = False,
 ) -> None:
     """Start a CiruitPython link"""
 
@@ -68,6 +68,8 @@ def start(
                 except ProcessLookupError:
                     pass
                 raise OSError("Could not start link process!")
+
+        print(f"Started link #{link.link_id}")
 
     else:  # PID is 0
         while not link.process_id:
@@ -115,13 +117,23 @@ def stop(link_id: str) -> bool:
         link_id = str(CircuitPythonLink.get_next_link_id() - 1)
         if link_id == "0":
             return False
-    return _stop_link(int(link_id))
 
-@app.command()
-def clear(link_id: int, *, force: bool = False) -> None:
-    """Clear the link from the history"""
+    try:
+        link_id = int(link_id)
+    except ValueError:
+        print('Link ID must be the ID, "last", or "all"')
 
-    link = CircuitPythonLink.load_link_by_num(link_id)
+    return _stop_link(link_id)
+
+
+def _clear_link(link_id: int, *, force: bool = False) -> bool:
+
+    try:
+        link = CircuitPythonLink.load_link_by_num(link_id)
+    except FileNotFoundError:
+        print("A link with this ID does not exist!")
+        exit(1)
+
     if not link.stopped and not force:
         print("Can only clear links marked as inactive.")
         print("To force clear this link, use the --force option.")
@@ -129,6 +141,29 @@ def clear(link_id: int, *, force: bool = False) -> None:
 
     os.remove(link.link_num_to_filename(link_id))
     print(f"Removed link #{link_id} from history")
+
+    return True
+
+
+@app.command()
+def clear(link_id: str, *, force: bool = False) -> None:
+    """Clear the link from the history"""
+
+    if link_id == "all":
+        while clear("last", force=force):
+            pass
+        return True
+    if link_id == "last":
+        link_id = str(CircuitPythonLink.get_next_link_id() - 1)
+        if link_id == "0":
+            return False
+
+    try:
+        link_id = int(link_id)
+    except ValueError:
+        print('Link ID must be the ID, "last", or "all"')
+
+    return _clear_link(link_id, force=force)
 
 
 @app.command(name="list")
