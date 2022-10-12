@@ -10,11 +10,11 @@ import shutil
 from typing import Dict, List
 
 PACKAGE_DIRECTORY = os.path.abspath(os.path.split(__file__)[0])
-BRIDGES_DIRECTORY = os.path.join(PACKAGE_DIRECTORY, "..", "bridges")
+LINKS_DIRECTORY = os.path.join(PACKAGE_DIRECTORY, "..", "links")
 
 
-class BridgeRecord:
-    """The bridge record"""
+class CircuitPythonLink:
+    """Thelink to the device"""
 
     def __init__(
         self,
@@ -44,21 +44,21 @@ class BridgeRecord:
         self._recursive = recursive
         self._wipe_dest = wipe_dest
         self._skip_presave = skip_presave
-        self._bridge_id = self.get_next_bridge_id()
+        self._link_id = self.get_next_link_id()
         self.process_id: int = proc_id
         self.confirmed: bool = confirmed
         self.end_flag: bool = end_flag
         self._stopped = stopped
 
     @staticmethod
-    def get_next_bridge_id() -> int:
-        """Get the next bridge ID"""
+    def get_next_link_id() -> int:
+        """Get the next link ID"""
 
-        bridge_gen = pathlib.Path(BRIDGES_DIRECTORY).glob("bridge*.json")
-        bridge_nums = [int(bridge_file.name[6:-5]) for bridge_file in bridge_gen]
-        if not bridge_nums:
+        link_gen = pathlib.Path(LINKS_DIRECTORY).glob("link*.json")
+        link_nums = [int(link_file.name[4:-5]) for link_file in link_gen]
+        if not link_nums:
             return 1
-        return max(bridge_nums) + 1
+        return max(link_nums) + 1
 
     @property
     def read_path(self) -> pathlib.Path:
@@ -77,8 +77,8 @@ class BridgeRecord:
         return self._recursive
 
     @property
-    def bridge_id(self) -> int:
-        return self._bridge_id
+    def link_id(self) -> int:
+        return self._link_id
 
     @property
     def skip_presave(self) -> bool:
@@ -92,10 +92,10 @@ class BridgeRecord:
     def stopped(self) -> bool:
         return self._stopped
 
-    def save_bridge(self, *, save_directory: str = BRIDGES_DIRECTORY) -> pathlib.Path:
-        """Save the bridge object as a file in the specified folder"""
+    def save_link(self, *, save_directory: str = LINKS_DIRECTORY) -> pathlib.Path:
+        """Save the link object as a file in the specified folder"""
 
-        bridge_obj = {
+        link_obj = {
             "name": self._name,
             "read": str(self._read_path.absolute()),
             "write": str(self._write_path.absolute()),
@@ -108,58 +108,57 @@ class BridgeRecord:
             "stopped": self._stopped,
         }
 
-        save_filepath = self.bridge_num_to_filename(
-            self._bridge_id, directory=save_directory
+        save_filepath = self.link_num_to_filename(
+            self._link_id, directory=save_directory
         )
 
-        with open(save_filepath, mode="w", encoding="utf-8") as bridgefile:
-            json.dump(bridge_obj, bridgefile, indent=4)
+        with open(save_filepath, mode="w", encoding="utf-8") as linkfile:
+            json.dump(link_obj, linkfile, indent=4)
 
         return pathlib.Path(save_filepath)
 
     @classmethod
-    def _load_bridge_by_filepath(cls, bridge_filepath: str) -> "BridgeRecord":
-        """Create a BridgeRecord from a JSON file, by filepath"""
+    def _load_link_by_filepath(cls, link_filepath: str) -> "CircuitPythonLink":
+        """Create a CircuitPythonLink from a JSON file, by filepath"""
 
-        with open(bridge_filepath, mode="r", encoding="utf-8") as bridgefile:
-            # print(bridgefile.read())
-            bridge_obj = json.load(bridgefile)
+        with open(link_filepath, mode="r", encoding="utf-8") as linkfile:
+            link_obj = json.load(linkfile)
 
         return cls(
-            name=bridge_obj["name"],
-            read_path=bridge_obj["read"],
-            write_path=bridge_obj["write"],
-            recursive=bridge_obj["recursive"],
-            wipe_dest=bridge_obj["wipe_dest"],
-            skip_presave=bridge_obj["skip_presave"],
-            proc_id=bridge_obj["proc_id"],
-            confirmed=bridge_obj["confirmed"],
-            end_flag=bridge_obj["end_flag"],
-            stopped=bridge_obj["stopped"],
+            name=link_obj["name"],
+            read_path=link_obj["read"],
+            write_path=link_obj["write"],
+            recursive=link_obj["recursive"],
+            wipe_dest=link_obj["wipe_dest"],
+            skip_presave=link_obj["skip_presave"],
+            proc_id=link_obj["proc_id"],
+            confirmed=link_obj["confirmed"],
+            end_flag=link_obj["end_flag"],
+            stopped=link_obj["stopped"],
         )
 
     @classmethod
-    def load_bridge_by_num(cls, bridge_num: int) -> "BridgeRecord":
-        """Create a BridgeRecord from a JSON file, by number"""
+    def load_link_by_num(cls, link_num: int) -> "CircuitPythonLink":
+        """Create a CircuitPythonLink from a JSON file, by number"""
 
-        bridge_filepath = cls.bridge_num_to_filename(bridge_num)
-        bridge = cls._load_bridge_by_filepath(bridge_filepath)
-        bridge._bridge_id = bridge_num
-        return bridge
+        link_filepath = cls.link_num_to_filename(link_num)
+        link = cls._load_link_by_filepath(link_filepath)
+        link._link_id = link_num
+        return link
 
     @staticmethod
-    def bridge_num_to_filename(num: int, *, directory: str = BRIDGES_DIRECTORY) -> str:
-        return os.path.join(directory, "bridge" + str(num) + ".json")
+    def link_num_to_filename(num: int, *, directory: str = LINKS_DIRECTORY) -> str:
+        return os.path.join(directory, "link" + str(num) + ".json")
 
     def begin_monitoring(self) -> None:
-        """Monitor the listed file/directory for changes"""
+        """Monitor the listed file(s) for changes"""
+
+        # Ensure the write path exists
+        os.makedirs(self._write_path, exist_ok=True)
 
         # Wipe the destination (write path) recursively
         if self._wipe_dest:
             shutil.rmtree(self._write_path)
-
-        # Ensure the write path exists
-        os.makedirs(self._write_path, exist_ok=True)
 
         file_pattern = self._read_path.name
         file_parent = self._read_path.parent
@@ -185,11 +184,10 @@ class BridgeRecord:
 
         marked_delete = []
 
-        temp_bridge = self.load_bridge_by_num(self._bridge_id)
-        while not temp_bridge.end_flag:
+        temp_link = self.load_link_by_num(self._link_id)
+        while not temp_link.end_flag:
 
-            # print(temp_bridge.end_flag)
-            temp_bridge = self.load_bridge_by_num(self._bridge_id)
+            temp_link = self.load_link_by_num(self._link_id)
             time.sleep(0.1)
 
             # Detect new files
@@ -232,7 +230,7 @@ class BridgeRecord:
 
         self.end_flag = True
         self._stopped = True
-        self.save_bridge()
+        self.save_link()
 
     def _copy_file(
         self,
