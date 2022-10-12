@@ -153,7 +153,7 @@ class CircuitPythonLink:
             stopped=link_obj["stopped"],
         )
 
-        link._link_id = CircuitPythonLink.link_id_to_filename(link_filepath)
+        link._link_id = CircuitPythonLink.filename_to_link_id(link_filepath)
 
         return link
 
