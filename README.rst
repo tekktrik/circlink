@@ -1,3 +1,15 @@
+.. image:: https://img.shields.io/readthedocs/circlink/latest
+   :alt: Read the Docs (version)
+
+.. image:: https://img.shields.io/github/workflow/status/tekktrik/circlink/Build%20CI/main
+   :alt: Build CI status (main branch)
+
+.. image:: https://img.shields.io/github/v/release/tekktrik/circlink
+   :alt: GitHub release (latest SemVer)
+
+.. image:: https://img.shields.io/github/license/tekktrik/circlink
+   :alt: License
+
 CircLink
 ========
 

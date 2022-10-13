@@ -14,8 +14,8 @@ import time
 import signal
 import pathlib
 from datetime import datetime, timedelta
-from typing import List, Tuple, TypeAlias
-from typing_extensions import Literal
+from typing import List, Tuple
+from typing_extensions import Literal, TypeAlias
 from typer import Typer
 from circup import find_device
 from tabulate import tabulate
