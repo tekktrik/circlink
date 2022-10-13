@@ -101,6 +101,7 @@ def start(
         link.confirmed = True
         link.save_link()
         link.begin_monitoring()
+        sys.exit(0)
 
 
 def _stop_link(link_id: int) -> Literal[True]:
@@ -108,11 +109,11 @@ def _stop_link(link_id: int) -> Literal[True]:
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
     except FileNotFoundError:
-        print("A link with this ID does not exist!")
+        print(f"Link #{link_id} does not exist!")
         sys.exit(1)
 
     if link.stopped:
-        print(f"Link {link.link_id} is already stopped")
+        print(f"Link #{link.link_id} is already stopped")
         sys.exit(0)
 
     link.end_flag = True
@@ -123,9 +124,9 @@ def _stop_link(link_id: int) -> Literal[True]:
 
     while not link.stopped:
         link = CircuitPythonLink.load_link_by_num(link_id)
-        time.sleep(0.5)  # Slight delay
+        time.sleep(0.1)  # Slight delay
         if datetime.now() >= error_time:
-            print("Link could not be stopped!")
+            print(f"Link #{link.link_id} could not be stopped!")
             sys.exit(1)
 
     print(f"Stopped link #{link_id}")
@@ -149,6 +150,7 @@ def stop(link_id: str) -> bool:
         link_id = int(link_id)
     except ValueError:
         print('Link ID must be the ID, "last", or "all"')
+        sys.exit(1)
 
     return _stop_link(link_id)
 
@@ -158,7 +160,7 @@ def _clear_link(link_id: int, *, force: bool = False) -> bool:
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
     except FileNotFoundError:
-        #print("A link with this ID does not exist!")
+        print(f"Link #{link_id} does not exist!")
         sys.exit(1)
 
     if not link.stopped and not force:
@@ -189,6 +191,7 @@ def clear(link_id: str, *, force: bool = False) -> None:
         link_id = int(link_id)
     except ValueError:
         print('Link ID must be the ID, "last", or "all"')
+        sys.exit(1)
 
     return _clear_link(link_id, force=force)
 
@@ -294,8 +297,11 @@ def restart(link_id: str) -> None:
         if link[2]:
             print(f"Link #{link[0]} is active, not restarting this link.")
         else:
-            start(str(link[3]), str(link[4]), name=link[1], recursive=link[5], path=True)
+            start(
+                str(link[3]), str(link[4]), name=link[1], recursive=link[5], path=True
+            )
             clear(link[0])
+
 
 @app.command()
 def about() -> None:
