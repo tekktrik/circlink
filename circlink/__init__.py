@@ -111,6 +111,10 @@ def _stop_link(link_id: int) -> Literal[True]:
         print("A link with this ID does not exist!")
         sys.exit(1)
 
+    if link.stopped:
+        print(f"Link {link.link_id} is already stopped")
+        sys.exit(0)
+
     link.end_flag = True
     link.save_link()
 
@@ -125,7 +129,6 @@ def _stop_link(link_id: int) -> Literal[True]:
             sys.exit(1)
 
     print(f"Stopped link #{link_id}")
-    clear(link_id)
     return True
 
 
@@ -155,7 +158,7 @@ def _clear_link(link_id: int, *, force: bool = False) -> bool:
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
     except FileNotFoundError:
-        print("A link with this ID does not exist!")
+        #print("A link with this ID does not exist!")
         sys.exit(1)
 
     if not link.stopped and not force:
@@ -192,7 +195,7 @@ def clear(link_id: str, *, force: bool = False) -> None:
 
 def _get_links_list(
     pattern: str, *, abs_paths: bool = False, name: str = ""
-) -> _TableRowEntry:
+) -> List[_TableRowEntry]:
 
     link_paths = pathlib.Path(LINKS_DIRECTORY).glob(pattern)
 
@@ -257,6 +260,40 @@ def list_links(link_id: str, *, abs_paths: bool = False) -> None:
     link_infos = _get_links_list(pattern, abs_paths=abs_paths)
     print(tabulate(link_infos, headers="firstrow"))
 
+
+@app.command()
+def restart(link_id: str) -> None:
+    """Restart a link"""
+
+    if link_id == "all":
+        pattern = "*"
+    elif link_id == "last":
+        link_id = str(CircuitPythonLink.get_next_link_id() - 1)
+        pattern = "link" + link_id + ".json"
+        if link_id == "0":
+            pattern = "*"
+
+    else:
+        try:
+            int(link_id)
+            pattern = "link" + link_id + ".json"
+        except ValueError:
+            print('Please use a valid link ID, "last", or "all" (default)')
+            sys.exit(1)
+
+    link_list = _get_links_list(pattern)
+    if not link_list:
+        print("There are no links in the history")
+        sys.exit(0)
+
+    for index, link in enumerate(link_list):
+        if not index:
+            continue
+        if link[2]:
+            print(f"Link #{link[0]} is active, not restarting this link.")
+        else:
+            start(str(link[3]), str(link[4]), name=link[1], recursive=link[5], path=True)
+            clear(link[0])
 
 @app.command()
 def about() -> None:
