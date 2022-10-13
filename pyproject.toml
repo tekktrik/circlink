@@ -41,7 +41,7 @@ dynamic = ["dependencies", "optional-dependencies"]
 circlink = "circlink:main"
 
 [tool.setuptools]
-py-modules = ["circlink"]
+packages = ["circlink"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
