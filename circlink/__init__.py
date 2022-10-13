@@ -215,11 +215,13 @@ def _get_links_list(
         link_id = link.link_id
         link_name = "---" if not link.name else link.name
         link_running = not link.stopped
-        link_read = (
-            link.read_path.resolve().relative_to(os.getcwd())
-            if not abs_paths
-            else link.read_path.resolve().absolute()
-        )
+        if not abs_paths:
+            try:
+                link_read = link.read_path.resolve().relative_to(os.getcwd())
+            except ValueError:
+                abs_paths = True
+        if abs_paths:
+            link_read = link.read_path.resolve().absolute()
         link_write = link.write_path.absolute().resolve()
         link_recursive = link.recursive
         link_proc = link.process_id
