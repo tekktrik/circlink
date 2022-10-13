@@ -1,17 +1,33 @@
-.. image:: https://img.shields.io/readthedocs/circlink/latest
-   :alt: Read the Docs (version)
-
-.. image:: https://img.shields.io/github/workflow/status/tekktrik/circlink/Build%20CI/main
-   :alt: Build CI status (main branch)
-
-.. image:: https://img.shields.io/github/v/release/tekktrik/circlink
-   :alt: GitHub release (latest SemVer)
-
-.. image:: https://img.shields.io/github/license/tekktrik/circlink
-   :alt: License
-
 CircLink
 ========
+
+.. image:: https://img.shields.io/readthedocs/circlink/latest
+   :target: https://circlink.readthedocs.io/en/latest/
+   :alt: Read the Docs (version)
+   
+.. image:: https://img.shields.io/github/workflow/status/tekktrik/circlink/Build%20CI/main
+   :target:  https://github.com/tekktrik/circlink/actions
+   :alt: Build CI status (main branch)
+
+.. image:: https://img.shields.io/pypi/pyversions/circlink
+   :target: https://pypi.org/project/circlink/
+   :alt: PyPI - Python Versions
+
+.. image:: https://img.shields.io/pypi/v/circlink
+   :target: https://pypi.org/project/circlink/
+   :alt: Latest PyPI Release
+
+.. image:: https://img.shields.io/github/license/tekktrik/circlink
+   :target: https://github.com/tekktrik/circlink/blob/main/LICENSE
+   :alt: MIT License
+
+.. image:: https://img.shields.io/maintenance/yes/2022
+   :target: https://github.com/tekktrik/circlink/issues
+   :alt: Maintenance
+
+.. image:: https://raw.githubusercontent.com/adafruit/Adafruit_CircuitPython_Bundle/main/badges/adafruit_discord.svg
+    :target: https://adafru.it/discord
+    :alt: Discord 
 
 Write code locally and have it automatically pushed to your CircuitPython device
 
