@@ -25,6 +25,10 @@ _TableRowEntry: TypeAlias = Tuple[int, str, bool, pathlib.Path, pathlib.Path, bo
 
 __version__ = "0.0.0+auto.0"
 
+# Prevent running on non-POSIX systems that don't have os.fork()
+if os.name != "posix":
+    print("circlink is currently only available for Linux and macOS")
+    sys.exit(1)
 
 app = Typer()
 
