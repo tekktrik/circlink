@@ -2,7 +2,8 @@
 #
 # SPDX-License-Identifier: MIT
 
-typer~=0.6
 circup~=1.0
-typing-extensions~=4.0
 tabulate~=0.8
+typer~=0.6
+typing-extensions~=4.0
+wheel~=0.37; python_version == '3.7'
