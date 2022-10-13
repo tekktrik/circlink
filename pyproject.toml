@@ -13,7 +13,7 @@ requires = [
 name = "circlink"
 description = "Tool for writing code locally and auto-pushing to CircuitPython boards"
 version = "0.0.0+auto.0"
-readme = "README.rst"
+readme = "README.md"
 authors = [
     {name = "Alec Delaney", email = "tekktrik@gmail.com"}
 ]
