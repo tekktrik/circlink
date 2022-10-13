@@ -80,7 +80,24 @@ circlink stop 1
 You can also use `all` and `last` to stop all links or just the last one
 created, respectively.
 
-# Clearing the Link History
+## Restarting a Link
+
+To restart a link, use the `restart` command along with the link ID:
+
+```shell
+circlink restart 1
+```
+
+This will start a new link (assuming it was stopped) with the same
+settings as before (except for the `--wipe-dest` and `--skip-presave`
+settings that were originally used, which are now at they're default).
+Note that this means the link will change link IDs.  This command will
+also clear the old link from the link history.
+
+If you want to keep the `--wipe-dest` and `--skip-presave` flags, you'll
+need to start a new link using the `start` command.
+
+## Clearing the Link History
 
 To clear a link from the history, you can use the `clear` command with the
 link ID:
@@ -101,3 +118,8 @@ circlink clear 1 --force
 If you If the link is still running, you'll get some nasty error text though.
 You can also use `all` and `last` instead of the link ID to clear all links
 or just the last one created, respectively.
+
+# License
+
+This library is licensed under an MIT license, so feel free to do with it what
+you want, and contributions are always welcome!
