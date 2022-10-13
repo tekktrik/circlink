@@ -12,10 +12,10 @@ jobs:
   upload-pypi:
     runs-on: ubuntu-latest
     steps:
-    - name: Set up latest Python 3
+    - name: Set up Python 3.7
       uses: actions/setup-python@v4
       with:
-        python-version: "3.x"
+        python-version: 3.7
     - name: Check Python version
       run: |
         python3 --version
