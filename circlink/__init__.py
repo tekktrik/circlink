@@ -316,6 +316,14 @@ def about() -> None:
     sys.exit(0)
 
 
+@app.command()
+def version() -> None:
+    """Display the current version of circlink"""
+
+    print(__version__)
+    sys.exit(0)
+
+
 def main() -> None:
     """Main function that runs when ``circlink`` is called as a CLI"""
 
