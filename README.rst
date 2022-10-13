@@ -40,6 +40,9 @@ You install CircLink via pip:
 
     pip install circlink
 
+Currently, only Linux and macOS are supported due to the implementation of how the
+tool forks the process.
+
 Starting a Link
 ---------------
 
@@ -55,20 +58,15 @@ This will also create ``cool_files/`` (and any other parent folders) on your dev
 if they do not already exist.  If you wanted to write it to the root folder of
 the CircuitPython device, use ``.`` for the write path.
 
-You can also use glob patterns for files using ``*``:
+You can also use glob patterns for files using ``*``.  Note that you'll have to
+escape the asterisk, like with quotes:
 
 .. code-block:: shell
 
-    circlink start *.txt .
+    circlink start '*'.txt .
 
 If you want to use the glob pattern recursively, you can add the ``--recursive``
 flag.
-
-Note that if you're using bash, you'll need to escape the asterisk:
-
-.. code-block:: bash
-
-    circlink start '*'.txt .
 
 Once a link is started all relevant files are pushed to the board, and any
 changes in the specified file(s) (including new or deleted files matching a glob
@@ -155,6 +153,15 @@ history manually of a link that still shows up, you can use the ``--force`` flag
 If you If the link is still running, you'll get some nasty error text though.
 You can also use ``all`` and ``last`` instead of the link ID to clear all links
 or just the last one created, respectively.
+
+Version
+-------
+
+You can check the version of ``circlink`` using the ``version`` command:
+
+.. code-block:: shell
+
+    circlink version
 
 License
 =======
