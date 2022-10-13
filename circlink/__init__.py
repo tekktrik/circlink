@@ -308,6 +308,18 @@ def restart(link_id: str) -> None:
 
 
 @app.command()
+def detect() -> None:
+    """Attempt to detect a CircuitPython board"""
+
+    device = find_device()
+    if device:
+        print("CircuitPython device detected:", device)
+    else:
+        print("No CircuitPython device detected")
+    sys.exit(0)
+
+
+@app.command()
 def about() -> None:
     """Display information about ``circlink``"""
 
