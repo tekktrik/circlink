@@ -327,7 +327,6 @@ def detect() -> None:
         print("CircuitPython device detected:", device)
     else:
         print("No CircuitPython device detected")
-    sys.exit(0)
 
 
 @app.command()
@@ -336,7 +335,6 @@ def about() -> None:
 
     print("Originally built with love by Tekktrik")
     print("Happy hackin'!")
-    sys.exit(0)
 
 
 @app.command()
@@ -344,7 +342,6 @@ def version() -> None:
     """Display the current version of circlink"""
 
     print(__version__)
-    sys.exit(0)
 
 
 def main() -> None:
