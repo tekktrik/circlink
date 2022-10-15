@@ -86,19 +86,19 @@ Other options for starting a link are as follows:
   a link.  This can be useful if you want to start a link, but only want files
   that change since that time to be pushed.
 
-Listing Link Details
+Viewing Link Details
 --------------------
 
-To list details about a link, you can use the ``link`` command along with the
-link ID.  So to list information about the link with ID 1, you would use:
+To view details about a link, you can use the ``view`` command along with the
+link ID.  So to view information about the link with ID 1, you would use:
 
 .. code-block:: shell
 
-    circlink list 1
+    circlink view 1
 
-This will list information about links such as IDs, names, whether they are
-active, the read and write paths, and even the process ID numbers corresponding
-to the links.  Instead of the list ID, you can also use ``all`` or ``last`` to list
+This will list information about the link such as ID, name, whether it is active,
+the read and write paths, and even the process ID numbers corresponding to the
+link.  Instead of the list ID, you can also use ``all`` or ``last`` to view
 information about all the links or just the last one created, respectively.
 
 Stopping a Link
