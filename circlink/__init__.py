@@ -30,7 +30,7 @@ if os.name != "posix":
     print("circlink is currently only available for Linux and macOS")
     sys.exit(1)
 
-app = Typer()
+app = Typer(add_completion=False)
 
 
 def _ensure_links_folder() -> None:
