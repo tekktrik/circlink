@@ -291,7 +291,7 @@ def restart(link_id: str) -> None:
             sys.exit(1)
 
     link_list = _get_links_list(pattern)
-    if not link_list:
+    if len(link_list) == 1:
         print("There are no links in the history")
         sys.exit(0)
 
