@@ -248,9 +248,9 @@ def _get_links_list(
     return link_infos
 
 
-@app.command(name="list")
-def list_links(link_id: str, *, abs_paths: bool = False) -> None:
-    """List all of the tracked links"""
+@app.command()
+def view(link_id: str, *, abs_paths: bool = False) -> None:
+    """List links in the history"""
 
     if link_id == "all":
         pattern = "*"
