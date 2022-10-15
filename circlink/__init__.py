@@ -252,9 +252,12 @@ def _get_links_list(
 def view(link_id: str, *, abs_paths: bool = False) -> None:
     """List links in the history"""
 
+    last_requested_flag = False
+
     if link_id == "all":
         pattern = "*"
     elif link_id == "last":
+        last_requested_flag = True
         link_id = str(CircuitPythonLink.get_next_link_id() - 1)
         pattern = "link" + link_id + ".json"
         if link_id == "0":
@@ -267,6 +270,14 @@ def view(link_id: str, *, abs_paths: bool = False) -> None:
             print('Please use a valid link ID, "last", or "all" (default)')
 
     link_infos = _get_links_list(pattern, abs_paths=abs_paths)
+
+    if len(link_infos) == 1:
+        if link_id == "all" or last_requested_flag:
+            print("No links in the history to view")
+            sys.exit(0)
+        print("This link ID is not in the history")
+        sys.exit(1)
+
     print(tabulate(link_infos, headers="firstrow"))
 
 
@@ -316,7 +327,6 @@ def detect() -> None:
         print("CircuitPython device detected:", device)
     else:
         print("No CircuitPython device detected")
-    sys.exit(0)
 
 
 @app.command()
@@ -325,7 +335,6 @@ def about() -> None:
 
     print("Originally built with love by Tekktrik")
     print("Happy hackin'!")
-    sys.exit(0)
 
 
 @app.command()
@@ -333,7 +342,6 @@ def version() -> None:
     """Display the current version of circlink"""
 
     print(__version__)
-    sys.exit(0)
 
 
 def main() -> None:
