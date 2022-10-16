@@ -113,8 +113,8 @@ class CircuitPythonLink:
 
         link_obj = {
             "name": self._name,
-            "read": str(self._read_path.absolute()),
-            "write": str(self._write_path.absolute()),
+            "read": str(self._read_path.resolve()),
+            "write": str(self._write_path.resolve()),
             "recursive": self._recursive,
             "wipe_dest": self._wipe_dest,
             "skip_presave": self._skip_presave,
@@ -269,7 +269,7 @@ class CircuitPythonLink:
         file_dest = write_path / read_file_relative
 
         if not file_dest.exists():
-            os.makedirs(os.path.join(str(file_dest.parent.absolute())), exist_ok=True)
+            os.makedirs(os.path.join(str(file_dest.parent.resolve())), exist_ok=True)
 
         shutil.copyfile(str(read_file.resolve()), file_dest.resolve())
 
