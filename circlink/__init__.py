@@ -108,7 +108,7 @@ def start(
         sys.exit(0)
 
 
-def _stop_link(link_id: int) -> Literal[True]:
+def _stop_link(link_id: int, *, hard_fault: bool = True) -> Literal[True]:
 
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
@@ -118,7 +118,10 @@ def _stop_link(link_id: int) -> Literal[True]:
 
     if link.stopped:
         print(f"Link #{link.link_id} is already stopped")
-        sys.exit(0)
+        if hard_fault:
+            sys.exit(0)
+        else:
+            return False
 
     link.end_flag = True
     link.save_link()
@@ -131,7 +134,10 @@ def _stop_link(link_id: int) -> Literal[True]:
         time.sleep(0.1)  # Slight delay
         if datetime.now() >= error_time:
             print(f"Link #{link.link_id} could not be stopped!")
-            sys.exit(1)
+            if hard_fault:
+                sys.exit(1)
+            else:
+                return False
 
     print(f"Stopped link #{link_id}")
     return True
@@ -142,13 +148,15 @@ def stop(link_id: str) -> bool:
     """Stop a CircuitPython link"""
 
     if link_id == "all":
-        while stop("last"):
-            pass
-        return True
+        link_entries = _get_links_list("*")[1:]
+        for link_entry in link_entries:
+            _stop_link(link_entry[0], hard_fault=False)
+        sys.exit(0)
     if link_id == "last":
         link_id = str(CircuitPythonLink.get_next_link_id() - 1)
         if link_id == "0":
-            return False
+            print("There are no links in the history")
+            sys.exit(1)
 
     try:
         link_id = int(link_id)
