@@ -247,8 +247,8 @@ def _get_links_list(
             except ValueError:
                 abs_paths = True
         if abs_paths:
-            link_read = link.read_path.resolve().absolute()
-        link_write = link.write_path.absolute().resolve()
+            link_read = link.read_path.resolve()
+        link_write = link.write_path.resolve()
         link_recursive = link.recursive
         link_proc = link.process_id
         if not name or link_name == name:
