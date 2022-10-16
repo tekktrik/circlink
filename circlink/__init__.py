@@ -148,7 +148,7 @@ def stop(link_id: str) -> bool:
     """Stop a CircuitPython link"""
 
     if link_id == "all":
-        link_entries = _get_links_list("*")[1:]
+        link_entries = _get_links_list("*")
         for link_entry in link_entries:
             _stop_link(link_entry[0], hard_fault=False)
         sys.exit(0)
@@ -167,7 +167,7 @@ def stop(link_id: str) -> bool:
     return _stop_link(link_id)
 
 
-def _clear_link(link_id: int, *, force: bool = False) -> bool:
+def _clear_link(link_id: int, *, force: bool = False, hard_fault: bool = False) -> bool:
 
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
@@ -177,8 +177,11 @@ def _clear_link(link_id: int, *, force: bool = False) -> bool:
 
     if not link.stopped and not force:
         print("Can only clear links marked as inactive.")
-        print("To force clear this link, use the --force option.")
-        sys.exit(1)
+        print(f"To force clear link #{link.link_id}, use the --force option.")
+        if hard_fault:
+            sys.exit(1)
+        else:
+            return False
 
     os.remove(link.link_id_to_filename(link_id))
     print(f"Removed link #{link_id} from history")
@@ -191,9 +194,13 @@ def clear(link_id: str, *, force: bool = False) -> None:
     """Clear the link from the history"""
 
     if link_id == "all":
-        while clear("last", force=force):
-            pass
-        return True
+        link_entries = _get_links_list("*")
+        for link_entry in link_entries:
+            _clear_link(link_entry[0], hard_fault=False)
+        sys.exit(0)
+        # while clear("last", force=force):
+        #    pass
+        # return True
     if link_id == "last":
         link_id = str(CircuitPythonLink.get_next_link_id() - 1)
         if link_id == "0":
@@ -208,23 +215,27 @@ def clear(link_id: str, *, force: bool = False) -> None:
     return _clear_link(link_id, force=force)
 
 
+def _add_links_header() -> List[Tuple[str, ...]]:
+    """Get the header row for the links list"""
+
+    return (
+        "ID",
+        "Name",
+        "Running?",
+        "Read Path",
+        "Write Path",
+        "Recursive?",
+        "Process ID",
+    )
+
+
 def _get_links_list(
     pattern: str, *, abs_paths: bool = False, name: str = ""
 ) -> List[_TableRowEntry]:
 
     link_paths = pathlib.Path(LINKS_DIRECTORY).glob(pattern)
 
-    link_infos = [
-        (
-            "ID",
-            "Name",
-            "Running?",
-            "Read Path",
-            "Write Path",
-            "Recursive?",
-            "Process ID",
-        )
-    ]
+    link_infos = []
     for link_path in link_paths:
         link = CircuitPythonLink.load_link_by_filepath(str(link_path))
         link_id = link.link_id
@@ -253,7 +264,7 @@ def _get_links_list(
                 )
             )
 
-    return link_infos
+    return sorted(link_infos, key=lambda x: x[0])
 
 
 @app.command()
@@ -279,13 +290,14 @@ def view(link_id: str, *, abs_paths: bool = False) -> None:
 
     link_infos = _get_links_list(pattern, abs_paths=abs_paths)
 
-    if len(link_infos) == 1:
+    if not link_infos:
         if link_id == "all" or last_requested_flag:
             print("No links in the history to view")
             sys.exit(0)
         print("This link ID is not in the history")
         sys.exit(1)
 
+    link_infos.insert(0, _add_links_header())
     print(tabulate(link_infos, headers="firstrow"))
 
 
@@ -310,13 +322,11 @@ def restart(link_id: str) -> None:
             sys.exit(1)
 
     link_list = _get_links_list(pattern)
-    if len(link_list) == 1:
+    if not link_list:
         print("There are no links in the history to restart")
         sys.exit(1)
 
-    for index, link in enumerate(link_list):
-        if not index:
-            continue
+    for link in link_list:
         if link[2]:
             print(f"Link #{link[0]} is active, not restarting this link.")
         else:
