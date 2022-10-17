@@ -16,12 +16,14 @@ import pathlib
 from datetime import datetime, timedelta
 from typing import List, Tuple, Literal
 from typing_extensions import TypeAlias
-from typer import Typer
+from typer import Typer, Option
 from circup import find_device
 from tabulate import tabulate
 from circlink.link import LINKS_DIRECTORY, CircuitPythonLink
 
-_TableRowEntry: TypeAlias = Tuple[int, str, bool, pathlib.Path, pathlib.Path, bool, int]
+_TableRowEntry: TypeAlias = Tuple[
+    int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
+]
 
 __version__ = "0.0.0+auto.0"
 
@@ -51,7 +53,32 @@ def start(
     wipe_dest: bool = False,
     skip_presave: bool = False,
 ) -> None:
-    """Start a CiruitPython link"""
+    """Start a CircuitPython link"""
+
+    _start(
+        read_path,
+        write_path,
+        os.getcwd(),
+        path=path,
+        name=name,
+        recursive=recursive,
+        wipe_dest=wipe_dest,
+        skip_presave=skip_presave,
+    )
+
+
+def _start(
+    read_path: str,
+    write_path: str,
+    base_dir: str,
+    *,
+    path: bool = False,
+    name: str = "",
+    recursive: bool = False,
+    wipe_dest: bool = False,
+    skip_presave: bool = False,
+) -> None:
+    """Backend of starting a CiruitPython link"""
 
     if "*" not in read_path and recursive:
         print("--recursive can only be used with glob patterns!")
@@ -64,9 +91,12 @@ def start(
             sys.exit(1)
         write_path = os.path.join(device_path, write_path)
 
+    base_dir = os.getcwd() if not base_dir else base_dir
+
     link = CircuitPythonLink(
         read_path,
         write_path,
+        base_dir,
         name=name,
         recursive=recursive,
         wipe_dest=wipe_dest,
@@ -226,6 +256,7 @@ def _add_links_header() -> List[Tuple[str, ...]]:
         "Write Path",
         "Recursive?",
         "Process ID",
+        "Base Directory",
     )
 
 
@@ -239,7 +270,7 @@ def _get_links_list(
     for link_path in link_paths:
         link = CircuitPythonLink.load_link_by_filepath(str(link_path))
         link_id = link.link_id
-        link_name = "---" if not link.name else link.name
+        link_name = link.name
         link_running = not link.stopped
         if not abs_paths:
             try:
@@ -251,6 +282,7 @@ def _get_links_list(
         link_write = link.write_path.resolve()
         link_recursive = link.recursive
         link_proc = link.process_id
+        link_base = link.base_dir
         if not name or link_name == name:
             link_infos.append(
                 (
@@ -261,6 +293,7 @@ def _get_links_list(
                     link_write,
                     link_recursive,
                     link_proc,
+                    link_base,
                 )
             )
 
@@ -288,7 +321,7 @@ def view(link_id: str, *, abs_paths: bool = False) -> None:
         except ValueError:
             print('Please use a valid link ID, "last", or "all" (default)')
 
-    link_infos = _get_links_list(pattern, abs_paths=abs_paths)
+    link_infos = [x[:-1] for x in _get_links_list(pattern, abs_paths=abs_paths)]
 
     if not link_infos:
         if link_id == "all" or last_requested_flag:
@@ -297,8 +330,9 @@ def view(link_id: str, *, abs_paths: bool = False) -> None:
         print("This link ID is not in the history")
         sys.exit(1)
 
-    link_infos.insert(0, _add_links_header())
-    print(tabulate(link_infos, headers="firstrow"))
+    # link_infos.insert(0, _add_links_header())
+    show_list = _add_links_header()
+    print(tabulate(link_infos, headers=show_list))
 
 
 @app.command()
@@ -330,8 +364,13 @@ def restart(link_id: str) -> None:
         if link[2]:
             print(f"Link #{link[0]} is active, not restarting this link.")
         else:
-            start(
-                str(link[3]), str(link[4]), name=link[1], recursive=link[5], path=True
+            _start(
+                str(link[3]),
+                str(link[4]),
+                link[-1],
+                name=link[1],
+                recursive=link[5],
+                path=True,
             )
             clear(link[0])
 
