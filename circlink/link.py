@@ -28,6 +28,7 @@ class CircuitPythonLink:
         self,
         read_path: str,
         write_path: str,
+        base_dir: str,
         *,
         name: str = "",
         recursive: bool = False,
@@ -41,6 +42,7 @@ class CircuitPythonLink:
 
         self._read_path = pathlib.Path(read_path)
         self._write_path = pathlib.Path(write_path)
+        self._base_dir = pathlib.Path(base_dir)
 
         if not self._read_path.exists() and not self._read_path.parent.is_dir():
             print(
@@ -79,6 +81,11 @@ class CircuitPythonLink:
         return self._write_path
 
     @property
+    def base_dir(self) -> pathlib.Path:
+        """The base directory for the read path"""
+        return self._base_dir
+
+    @property
     def name(self) -> str:
         """The link name"""
         return self._name
@@ -115,6 +122,7 @@ class CircuitPythonLink:
             "name": self._name,
             "read": str(self._read_path.resolve()),
             "write": str(self._write_path.resolve()),
+            "base_dir": str(self._base_dir.resolve()),
             "recursive": self._recursive,
             "wipe_dest": self._wipe_dest,
             "skip_presave": self._skip_presave,
@@ -144,6 +152,7 @@ class CircuitPythonLink:
             name=link_obj["name"],
             read_path=link_obj["read"],
             write_path=link_obj["write"],
+            base_dir=link_obj["base_dir"],
             recursive=link_obj["recursive"],
             wipe_dest=link_obj["wipe_dest"],
             skip_presave=link_obj["skip_presave"],
@@ -213,7 +222,7 @@ class CircuitPythonLink:
         for read_file in read_files:
             update_map[read_file] = read_file.stat().st_mtime
             if not self._skip_presave:
-                self._copy_file(self._write_path, read_file)
+                self._copy_file(self._write_path, read_file, self.base_dir)
 
         marked_delete = []
 
@@ -231,7 +240,7 @@ class CircuitPythonLink:
                     new_files.append(file)
             for file in new_files:
                 update_map[file] = file.stat().st_mtime
-                self._copy_file(self.write_path, file)
+                self._copy_file(self.write_path, file, self.base_dir)
             new_files = []
 
             for file, last_modtime in update_map.items():
@@ -244,12 +253,12 @@ class CircuitPythonLink:
                 # Detect changes
                 modtime = file.stat().st_mtime
                 if modtime > last_modtime:
-                    self._copy_file(self._write_path, file)
+                    self._copy_file(self._write_path, file, self.base_dir)
                     update_map[file] = modtime
 
             # Delete marked files
             for file in marked_delete:
-                self._delete_file(self._write_path, file)
+                self._delete_file(self._write_path, file, self.base_dir)
                 try:
                     del update_map[file]
                 except KeyError:
@@ -264,8 +273,9 @@ class CircuitPythonLink:
         self,
         write_path: pathlib.Path,
         read_file: pathlib.Path,
+        base_dir: pathlib.Path,
     ):
-        read_file_relative = read_file.relative_to(os.getcwd())
+        read_file_relative = read_file.relative_to(base_dir)
         file_dest = write_path / read_file_relative
 
         if not file_dest.exists():
@@ -277,9 +287,10 @@ class CircuitPythonLink:
         self,
         write_path: pathlib.Path,
         read_file: pathlib.Path,
+        base_dir: pathlib.Path,
     ):
 
-        read_file_relative = read_file.relative_to(os.getcwd())
+        read_file_relative = read_file.relative_to(base_dir)
         file_dest = write_path / read_file_relative
 
         if file_dest.resolve().exists():
