@@ -53,6 +53,8 @@ def start(
     wipe_dest: bool = False,
     skip_presave: bool = False,
 ) -> None:
+    """Start a CircuitPython link"""
+
     _start(
         read_path,
         write_path,
@@ -76,7 +78,7 @@ def _start(
     wipe_dest: bool = False,
     skip_presave: bool = False,
 ) -> None:
-    """Start a CiruitPython link"""
+    """Backend of starting a CiruitPython link"""
 
     if "*" not in read_path and recursive:
         print("--recursive can only be used with glob patterns!")
