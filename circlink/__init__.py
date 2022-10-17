@@ -226,7 +226,7 @@ def clear(link_id: str, *, force: bool = False) -> None:
     if link_id == "all":
         link_entries = _get_links_list("*")
         for link_entry in link_entries:
-            _clear_link(link_entry[0], hard_fault=False)
+            _clear_link(link_entry[0], force=force, hard_fault=False)
         sys.exit(0)
         # while clear("last", force=force):
         #    pass
