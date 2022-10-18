@@ -113,6 +113,11 @@ def _start(
             sys.exit(1)
         write_path = os.path.join(device_path, write_path)
 
+    if not os.access(write_path, os.W_OK):
+        print("Cannot write to the device or specified path")
+        print("If using CircuitPython board, please ensure it is nounted")
+        sys.exit(1)
+
     base_dir = os.getcwd() if not base_dir else base_dir
 
     link = CircuitPythonLink(
