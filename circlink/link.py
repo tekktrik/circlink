@@ -192,11 +192,13 @@ class CircuitPythonLink:
         file_pattern = self._read_path.name
         file_parent = self._read_path.parent
 
-        return list(
+        all_potential = list(
             file_parent.rglob(file_pattern)
             if self._recursive
             else file_parent.glob(file_pattern)
         )
+
+        return [file for file in all_potential if file.is_file()]
 
     def begin_monitoring(self) -> None:
         """Monitor the listed file(s) for changes"""
