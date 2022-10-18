@@ -16,7 +16,7 @@ import pathlib
 from datetime import datetime, timedelta
 from typing import List, Tuple, Literal
 from typing_extensions import TypeAlias
-from typer import Typer, Option
+from typer import Typer, Option, Argument
 from circup import find_device
 from tabulate import tabulate
 from circlink.link import LINKS_DIRECTORY, CircuitPythonLink
@@ -44,14 +44,34 @@ def _ensure_links_folder() -> None:
 
 @app.command()
 def start(
-    read_path: str,
-    write_path: str,
+    read_path: str = Argument(..., help="The read path/pattern of file(s) to save"),
+    write_path: str = Argument(
+        ...,
+        help="The write path of the directory to write files, relative to the CircuitPython board",
+    ),
     *,
-    path: bool = False,
-    name: str = "",
-    recursive: bool = False,
-    wipe_dest: bool = False,
-    skip_presave: bool = False,
+    path: bool = Option(
+        False,
+        "--path",
+        "-p",
+        help="Designate the write path as absolute or relative to the current directory",
+    ),
+    name: str = Option("", "--name", "-n", help="A name for the new link"),
+    recursive: bool = Option(
+        False, "--recursive", "-r", help="Whether the link glob pattern is recursive"
+    ),
+    wipe_dest: bool = Option(
+        False,
+        "--wipe-dest",
+        "-w",
+        help="Wipe the write destination recursively before starting the link",
+    ),
+    skip_presave: bool = Option(
+        False,
+        "--skip-presave",
+        "-s",
+        help="Skip the inital save and write performed when opening a link",
+    ),
 ) -> None:
     """Start a CircuitPython link"""
 
@@ -174,7 +194,7 @@ def _stop_link(link_id: int, *, hard_fault: bool = True) -> Literal[True]:
 
 
 @app.command()
-def stop(link_id: str) -> bool:
+def stop(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> bool:
     """Stop a CircuitPython link"""
 
     if link_id == "all":
@@ -220,7 +240,13 @@ def _clear_link(link_id: int, *, force: bool = False, hard_fault: bool = False) 
 
 
 @app.command()
-def clear(link_id: str, *, force: bool = False) -> None:
+def clear(
+    link_id: str = Argument(..., help="Link ID / 'last' / 'all'"),
+    *,
+    force: bool = Option(
+        False, "--force", "-f", help="Ignore warning and force clear from history"
+    ),
+) -> None:
     """Clear the link from the history"""
 
     if link_id == "all":
@@ -301,7 +327,13 @@ def _get_links_list(
 
 
 @app.command()
-def view(link_id: str, *, abs_paths: bool = False) -> None:
+def view(
+    link_id: str = Argument(..., help="Link ID / 'last' / 'all'"),
+    *,
+    abs_paths: bool = Option(
+        False, "--abs-path", "-a", help="Show the read path as absolute"
+    ),
+) -> None:
     """List links in the history"""
 
     last_requested_flag = False
@@ -336,7 +368,7 @@ def view(link_id: str, *, abs_paths: bool = False) -> None:
 
 
 @app.command()
-def restart(link_id: str) -> None:
+def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> None:
     """Restart a link"""
 
     if link_id == "all":
