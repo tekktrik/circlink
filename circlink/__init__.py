@@ -32,7 +32,9 @@ if os.name != "posix":
     print("circlink is currently only available for Linux and macOS")
     sys.exit(1)
 
-app = Typer(add_completion=False)
+app = Typer(
+    add_completion=False, help="Autosave local files to your CircuitPython board"
+)
 
 
 def _ensure_links_folder() -> None:
@@ -420,7 +422,7 @@ def detect() -> None:
 
 @app.command()
 def about() -> None:
-    """Display information about ``circlink``"""
+    """Display information about circlink"""
 
     print("Originally built with love by Tekktrik")
     print("Happy hackin'!")
