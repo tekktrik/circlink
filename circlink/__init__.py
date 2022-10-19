@@ -196,7 +196,8 @@ def _stop_link(link_id: int, *, hard_fault: bool = True) -> Literal[True]:
     if not maybe_process:
         print(
             f"Problem encountered stopping link #{link_id}!\n"
-            "Asscoiated proess either does not exist or isn't ciclink.\n"
+            "Asscoiated proess either does not exist, was already "
+            "stopped, or isn't ciclink.\n"
             "Consider using the clear command with the --force flag to "
             "clear it from the history."
         )
