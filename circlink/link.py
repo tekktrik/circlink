@@ -9,13 +9,12 @@ Author(s): Alec Delaney (Tekktrik)
 """
 
 import os
-import sys
 import time
 import json
 import pathlib
 import shutil
 from typing import Dict, List, Union
-from typer import get_app_dir
+from typer import get_app_dir, Exit
 
 APP_DIRECTORY = get_app_dir("circlink")
 LINKS_DIRECTORY = os.path.join(APP_DIRECTORY, "links")
@@ -49,7 +48,7 @@ class CircuitPythonLink:
             print(
                 "Read path is not valid, please reference a specific file or glob pattern for files"
             )
-            sys.exit(1)
+            raise Exit(code=1)
 
         self._name = name
         self._recursive = recursive

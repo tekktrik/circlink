@@ -17,7 +17,7 @@ import shutil
 from datetime import datetime, timedelta
 from typing import List, Tuple, Literal
 from typing_extensions import TypeAlias
-from typer import Typer, Option, Argument
+from typer import Typer, Option, Argument, Exit
 from circup import find_device
 from tabulate import tabulate
 from circlink.link import LINKS_DIRECTORY, APP_DIRECTORY, CircuitPythonLink
@@ -108,19 +108,19 @@ def _start(
 
     if "*" not in read_path and recursive:
         print("--recursive can only be used with glob patterns!")
-        sys.exit(1)
+        raise Exit(code=1)
 
     if not path:
         device_path = find_device()
         if not device_path:
             print("Cound not auto-detect board path!")
-            sys.exit(1)
+            raise Exit(code=1)
         write_path = os.path.join(device_path, write_path)
 
     if not os.access(write_path, os.W_OK):
         print("Cannot write to the device or specified path")
         print("If using CircuitPython board, please ensure it is nounted")
-        sys.exit(1)
+        raise Exit(code=1)
 
     base_dir = os.getcwd() if not base_dir else base_dir
 
@@ -166,23 +166,22 @@ def _start(
         link.confirmed = True
         link.save_link()
         link.begin_monitoring()
-        sys.exit(0)
+        raise Exit()
 
 
 def _stop_link(link_id: int, *, hard_fault: bool = True) -> Literal[True]:
 
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
-    except FileNotFoundError:
+    except FileNotFoundError as err:
         print(f"Link #{link_id} does not exist!")
-        sys.exit(1)
+        raise Exit(code=1) from err
 
     if link.stopped:
         print(f"Link #{link.link_id} is already stopped")
         if hard_fault:
-            sys.exit(0)
-        else:
-            return False
+            raise Exit()
+        return False
 
     link.end_flag = True
     link.save_link()
@@ -196,9 +195,8 @@ def _stop_link(link_id: int, *, hard_fault: bool = True) -> Literal[True]:
         if datetime.now() >= error_time:
             print(f"Link #{link.link_id} could not be stopped!")
             if hard_fault:
-                sys.exit(1)
-            else:
-                return False
+                raise Exit(code=1)
+            return False
 
     print(f"Stopped link #{link_id}")
     return True
@@ -212,18 +210,18 @@ def stop(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> bool:
         link_entries = _get_links_list("*")
         for link_entry in link_entries:
             _stop_link(link_entry[0], hard_fault=False)
-        sys.exit(0)
+        raise Exit()
     if link_id == "last":
         link_id = str(CircuitPythonLink.get_next_link_id() - 1)
         if link_id == "0":
             print("There are no links in the history")
-            sys.exit(1)
+            raise Exit(code=1)
 
     try:
         link_id = int(link_id)
-    except ValueError:
+    except ValueError as err:
         print('Link ID must be the ID, "last", or "all"')
-        sys.exit(1)
+        raise Exit(code=1) from err
 
     return _stop_link(link_id)
 
@@ -232,17 +230,16 @@ def _clear_link(link_id: int, *, force: bool = False, hard_fault: bool = False) 
 
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
-    except FileNotFoundError:
+    except FileNotFoundError as err:
         print(f"Link #{link_id} does not exist!")
-        sys.exit(1)
+        raise Exit(code=1) from err
 
     if not link.stopped and not force:
         print("Can only clear links marked as inactive.")
         print(f"To force clear link #{link.link_id}, use the --force option.")
         if hard_fault:
-            sys.exit(1)
-        else:
-            return False
+            raise Exit(code=1)
+        return False
 
     os.remove(link.link_id_to_filename(link_id))
     print(f"Removed link #{link_id} from history")
@@ -264,7 +261,7 @@ def clear(
         link_entries = _get_links_list("*")
         for link_entry in link_entries:
             _clear_link(link_entry[0], force=force, hard_fault=False)
-        sys.exit(0)
+        raise Exit()
         # while clear("last", force=force):
         #    pass
         # return True
@@ -275,9 +272,9 @@ def clear(
 
     try:
         link_id = int(link_id)
-    except ValueError:
+    except ValueError as err:
         print('Link ID must be the ID, "last", or "all"')
-        sys.exit(1)
+        raise Exit(code=1) from err
 
     return _clear_link(link_id, force=force)
 
@@ -369,9 +366,9 @@ def view(
     if not link_infos:
         if link_id == "all" or last_requested_flag:
             print("No links in the history to view")
-            sys.exit(0)
+            raise Exit()
         print("This link ID is not in the history")
-        sys.exit(1)
+        raise Exit(code=1)
 
     # link_infos.insert(0, _add_links_header())
     show_list = _add_links_header()
@@ -394,14 +391,14 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
         try:
             int(link_id)
             pattern = "link" + link_id + ".json"
-        except ValueError:
+        except ValueError as err:
             print('Please use a valid link ID, "last", or "all" (default)')
-            sys.exit(1)
+            raise Exit(code=1) from err
 
     link_list = _get_links_list(pattern)
     if not link_list:
         print("There are no links in the history to restart")
-        sys.exit(1)
+        raise Exit(code=1)
 
     for link in link_list:
         if link[2]:
