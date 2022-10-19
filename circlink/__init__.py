@@ -429,23 +429,42 @@ def detect() -> None:
         print("No CircuitPython device detected")
 
 
-@app.command()
-def about() -> None:
+def about_cb() -> None:
     """Display information about circlink"""
 
     print("Originally built with love by Tekktrik")
     print("Happy hackin'!")
+    Exit()
 
 
-@app.command()
-def version() -> None:
+def version_cb() -> None:
     """Display the current version of circlink"""
 
     print(__version__)
+    Exit()
 
 
-@app.command()
-def reset() -> None:
+@app.callback(invoke_without_command=True)
+def callback(
+    version: bool = Option(
+        False, "--version", "-v", help="Display the version of circlink"
+    ),
+    about: bool = Option(False, "--about", "-a", help="A bit about circlink"),
+    reset: bool = Option(
+        False, "--reset", help="Reset the circlink configuration settings"
+    ),
+) -> None:
+    """Display the current version of circlink"""
+
+    if version:
+        version_cb()
+    if about:
+        about_cb()
+    if reset:
+        reset_cb()
+
+
+def reset_cb() -> None:
     """Reset the app directory, useful if you upgrade circlink and there
     are breaking changes
     """
@@ -454,6 +473,7 @@ def reset() -> None:
     print("Removed circlink app directory, settngs and history deleted!")
     print("These will be created on next use of circlink.")
     print("Please check the integrity of any files handled by circlink.")
+    Exit()
 
 
 def main() -> None:
