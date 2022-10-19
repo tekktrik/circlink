@@ -165,7 +165,10 @@ def _start(
             time.sleep(0.3)
         link.confirmed = True
         link.save_link()
-        link.begin_monitoring()
+        try:
+            link.begin_monitoring()
+        except FileNotFoundError:
+            Exit(code=1)
         raise Exit()
 
 
@@ -448,7 +451,9 @@ def reset() -> None:
     """
 
     shutil.rmtree(APP_DIRECTORY)
-    print("Removed circlink app directory, settngs and history deleted")
+    print("Removed circlink app directory, settngs and history deleted!")
+    print("These will be created on next use of circlink.")
+    print("Please check the integrity of any files handled by circlink.")
 
 
 def main() -> None:
