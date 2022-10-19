@@ -17,6 +17,7 @@ import shutil
 from datetime import datetime, timedelta
 from typing import List, Tuple, Literal
 from typing_extensions import TypeAlias
+import psutil
 from typer import Typer, Option, Argument, Exit
 from circup import find_device
 from tabulate import tabulate
@@ -185,6 +186,22 @@ def _stop_link(link_id: int, *, hard_fault: bool = True) -> Literal[True]:
         if hard_fault:
             raise Exit()
         return False
+
+    try:
+        circlink_process = psutil.Process(link.process_id)
+        maybe_process = circlink_process.name() == "circlink"
+    except psutil.NoSuchProcess:
+        maybe_process = False
+
+    if not maybe_process:
+        print(
+            f"Problem encountered stopping link #{link_id}!\n"
+            "Asscoiated proess either does not exist, was already "
+            "stopped, or isn't ciclink.\n"
+            "Consider using the clear command with the --force flag to "
+            "clear it from the history."
+        )
+        raise Exit(code=1)
 
     link.end_flag = True
     link.save_link()
