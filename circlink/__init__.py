@@ -13,13 +13,14 @@ import sys
 import time
 import signal
 import pathlib
+import shutil
 from datetime import datetime, timedelta
 from typing import List, Tuple, Literal
 from typing_extensions import TypeAlias
 from typer import Typer, Option, Argument
 from circup import find_device
 from tabulate import tabulate
-from circlink.link import LINKS_DIRECTORY, CircuitPythonLink
+from circlink.link import LINKS_DIRECTORY, APP_DIRECTORY, CircuitPythonLink
 
 _TableRowEntry: TypeAlias = Tuple[
     int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
@@ -37,8 +38,11 @@ app = Typer(
 )
 
 
-def _ensure_links_folder() -> None:
+def _ensure_app_folder_setup() -> None:
     """Ensures that the ``links`` folder exists"""
+
+    if not os.path.exists(APP_DIRECTORY):
+        os.mkdir(APP_DIRECTORY)
 
     if not os.path.exists(LINKS_DIRECTORY):
         os.mkdir(LINKS_DIRECTORY)
@@ -440,10 +444,20 @@ def version() -> None:
     print(__version__)
 
 
+@app.command()
+def reset() -> None:
+    """Reset the app directory, useful if you upgrade circlink and there
+    are breaking changes
+    """
+
+    shutil.rmtree(APP_DIRECTORY)
+    print("Removed circlink app directory, settngs and history deleted")
+
+
 def main() -> None:
     """Main function that runs when ``circlink`` is called as a CLI"""
 
-    _ensure_links_folder()
+    _ensure_app_folder_setup()
     app()
 
 

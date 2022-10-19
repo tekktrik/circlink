@@ -15,9 +15,10 @@ import json
 import pathlib
 import shutil
 from typing import Dict, List, Union
+from typer import get_app_dir
 
-PACKAGE_DIRECTORY = os.path.abspath(os.path.split(__file__)[0])
-LINKS_DIRECTORY = os.path.join(PACKAGE_DIRECTORY, "..", "links")
+APP_DIRECTORY = get_app_dir("circlink")
+LINKS_DIRECTORY = os.path.join(APP_DIRECTORY, "links")
 
 
 # pylint: disable=too-many-instance-attributes
