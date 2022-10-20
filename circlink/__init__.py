@@ -15,7 +15,7 @@ import signal
 import pathlib
 import shutil
 from datetime import datetime, timedelta
-from typing import List, Tuple, Literal
+from typing import List, Tuple
 from typing_extensions import TypeAlias
 import psutil
 from typer import Typer, Option, Argument, Exit
