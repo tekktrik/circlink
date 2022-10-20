@@ -173,7 +173,7 @@ def _start(
         raise Exit()
 
 
-def _stop_link(link_id: int, *, hard_fault: bool = True) -> Literal[True]:
+def _stop_link(link_id: int, *, hard_fault: bool = True) -> bool:
 
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
@@ -223,13 +223,23 @@ def _stop_link(link_id: int, *, hard_fault: bool = True) -> Literal[True]:
 
 
 @app.command()
-def stop(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> bool:
+def stop(
+    link_id: str = Argument(..., help="Link ID / 'last' / 'all'"),
+    clear_flag: bool = Option(
+        False,
+        "--clear",
+        "-c",
+        help="Clear the history of the specified link(s) as well",
+    ),
+) -> bool:
     """Stop a CircuitPython link"""
 
     if link_id == "all":
         link_entries = _get_links_list("*")
         for link_entry in link_entries:
             _stop_link(link_entry[0], hard_fault=False)
+            if clear_flag:
+                _clear_link(link_entry[0], hard_fault=False)
         raise Exit()
     if link_id == "last":
         link_id = str(CircuitPythonLink.get_next_link_id() - 1)
@@ -243,7 +253,9 @@ def stop(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> bool:
         print('Link ID must be the ID, "last", or "all"')
         raise Exit(code=1) from err
 
-    return _stop_link(link_id)
+    _stop_link(link_id)
+    if clear_flag:
+        _clear_link(link_id)
 
 
 def _clear_link(link_id: int, *, force: bool = False, hard_fault: bool = False) -> bool:
@@ -288,7 +300,7 @@ def clear(
     if link_id == "last":
         link_id = str(CircuitPythonLink.get_next_link_id() - 1)
         if link_id == "0":
-            return False
+            return
 
     try:
         link_id = int(link_id)
@@ -296,7 +308,7 @@ def clear(
         print('Link ID must be the ID, "last", or "all"')
         raise Exit(code=1) from err
 
-    return _clear_link(link_id, force=force)
+    _clear_link(link_id, force=force)
 
 
 def _add_links_header() -> List[Tuple[str, ...]]:
