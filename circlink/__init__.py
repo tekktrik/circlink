@@ -463,14 +463,14 @@ def about_cb() -> None:
 
     print("Originally built with love by Tekktrik")
     print("Happy hackin'!")
-    Exit()
+    raise Exit()
 
 
 def version_cb() -> None:
     """Display the current version of circlink"""
 
     print(__version__)
-    Exit()
+    raise Exit()
 
 
 @app.callback(invoke_without_command=True)
@@ -502,15 +502,4 @@ def reset_cb() -> None:
     print("Removed circlink app directory, settngs and history deleted!")
     print("These will be created on next use of circlink.")
     print("Please check the integrity of any files handled by circlink.")
-    Exit()
-
-
-def main() -> None:
-    """Main function that runs when ``circlink`` is called as a CLI"""
-
-    _ensure_app_folder_setup()
-    app()
-
-
-if __name__ == "__main__":
-    main()
+    raise Exit()
