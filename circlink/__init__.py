@@ -21,7 +21,13 @@ import psutil
 from typer import Typer, Option, Argument, Exit
 from circup import find_device
 from tabulate import tabulate
-from circlink.link import LINKS_DIRECTORY, APP_DIRECTORY, CircuitPythonLink
+from circlink.ledger import ensure_ledger_file
+from circlink.link import (
+    LINKS_DIRECTORY,
+    APP_DIRECTORY,
+    CircuitPythonLink,
+    ensure_links_folder,
+)
 
 _TableRowEntry: TypeAlias = Tuple[
     int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
@@ -45,8 +51,8 @@ def _ensure_app_folder_setup() -> None:
     if not os.path.exists(APP_DIRECTORY):
         os.mkdir(APP_DIRECTORY)
 
-    if not os.path.exists(LINKS_DIRECTORY):
-        os.mkdir(LINKS_DIRECTORY)
+    ensure_links_folder()
+    ensure_ledger_file()
 
 
 @app.command()
@@ -484,6 +490,8 @@ def callback(
     ),
 ) -> None:
     """Display the current version of circlink"""
+
+    _ensure_app_folder_setup()
 
     if version:
         version_cb()

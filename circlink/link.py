@@ -20,6 +20,13 @@ APP_DIRECTORY = get_app_dir("circlink")
 LINKS_DIRECTORY = os.path.join(APP_DIRECTORY, "links")
 
 
+def ensure_links_folder() -> None:
+    """Ensure the links folder is created"""
+
+    if not os.path.exists(LINKS_DIRECTORY):
+        os.mkdir(LINKS_DIRECTORY)
+
+
 # pylint: disable=too-many-instance-attributes
 class CircuitPythonLink:
     """Thelink to the device"""
