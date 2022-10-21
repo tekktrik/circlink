@@ -154,14 +154,27 @@ If you If the link is still running, you'll get some nasty error text though.
 You can also use ``all`` and ``last`` instead of the link ID to clear all links
 or just the last one created, respectively.
 
-Version
--------
+Resetting
+---------
 
-You can check the version of ``circlink`` using the ``version`` command:
+If you're downloading a new version of ``circlink`` containing API changes, or
+you just need to obliterate all the settings and links, you can use the
+``--reset`` callback to wipe the configuration settings for ``circlink``.  New
+files will be reinitialized when the tool next runs, but this will allow you
+to start from scratch:
 
 .. code-block:: shell
 
-    circlink version
+    circlink --reset
+
+Version
+-------
+
+You can check the version of ``circlink`` using the ``--version`` callback:
+
+.. code-block:: shell
+
+    circlink --version
 
 License
 =======
