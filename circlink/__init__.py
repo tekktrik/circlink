@@ -21,12 +21,13 @@ import psutil
 from typer import Typer, Option, Argument, Exit
 from circup import find_device
 from tabulate import tabulate
-from circlink.ledger import ensure_ledger_file
 from circlink.link import (
     LINKS_DIRECTORY,
     APP_DIRECTORY,
     CircuitPythonLink,
     ensure_links_folder,
+    ensure_ledger_file,
+    iter_ledger_entries,
 )
 
 _TableRowEntry: TypeAlias = Tuple[
@@ -511,3 +512,14 @@ def reset_cb() -> None:
     print("These will be created on next use of circlink.")
     print("Please check the integrity of any files handled by circlink.")
     raise Exit()
+
+
+@app.command()
+def ledger() -> None:
+    """View the ledger of files controlled by links"""
+
+    ledger_entries = list(iter_ledger_entries())
+    if not ledger_entries:
+        print("No files being tracked by circlink")
+        raise Exit()
+    print(tabulate(ledger_entries, headers=("Write Path", "Link", "Process ID")))
