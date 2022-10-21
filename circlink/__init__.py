@@ -28,6 +28,7 @@ from circlink.link import (
     ensure_links_folder,
     ensure_ledger_file,
     iter_ledger_entries,
+    remove_from_ledger,
 )
 
 _TableRowEntry: TypeAlias = Tuple[
@@ -204,7 +205,7 @@ def _stop_link(link_id: int, *, hard_fault: bool = True) -> bool:
         print(
             f"Problem encountered stopping link #{link_id}!\n"
             "Asscoiated proess either does not exist, was already "
-            "stopped, or isn't ciclink.\n"
+            "stopped, or isn't circlink.\n"
             "Consider using the clear command with the --force flag to "
             "clear it from the history."
         )
@@ -282,6 +283,11 @@ def _clear_link(link_id: int, *, force: bool = False, hard_fault: bool = False) 
 
     os.remove(link.link_id_to_filename(link_id))
     print(f"Removed link #{link_id} from history")
+
+    # Remove file from ledger, just in case
+    for entry in iter_ledger_entries():
+        if entry.link_id == link_id:
+            remove_from_ledger(entry, expect_entry=True, use_lock=False)
 
     return True
 
