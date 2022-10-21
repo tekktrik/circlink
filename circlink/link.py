@@ -353,8 +353,9 @@ class CircuitPythonLink:
         base_dir: pathlib.Path,
     ):
 
-        read_file_relative = read_file.relative_to(base_dir)
-        file_dest = write_path / read_file_relative
+        file_dest = CircuitPythonLink.get_write_filepath(
+            write_path, read_file, base_dir
+        )
 
         if file_dest.resolve().exists():
             os.remove(file_dest.resolve())
