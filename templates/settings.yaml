@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2022 Alec Delaney
+#
+# SPDX-License-Identifier: MIT
+
+logs:
+  active: true
+  level: info
+rich:
+  table:
+    format: simple
+  text:
+    active: false

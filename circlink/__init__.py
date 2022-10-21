@@ -14,11 +14,13 @@ import time
 import signal
 import pathlib
 import shutil
+import json
 from datetime import datetime, timedelta
 from typing import List, Tuple
 from typing_extensions import TypeAlias
 import psutil
-from typer import Typer, Option, Argument, Exit
+import yaml
+from typer import Typer, Option, Argument, Exit, Context
 from circup import find_device
 from tabulate import tabulate
 from circlink.link import (
@@ -31,11 +33,15 @@ from circlink.link import (
     remove_from_ledger,
 )
 
+__version__ = "0.0.0+auto.0"
+
+
 _TableRowEntry: TypeAlias = Tuple[
     int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
 ]
 
-__version__ = "0.0.0+auto.0"
+SETTINGS_FILE = os.path.join(APP_DIRECTORY, "settings.yaml")
+_ALLOW_EXTRA_ARGS = dict(allow_extra_args=True, ignore_unknown_options=True)
 
 # Prevent running on non-POSIX systems that don't have os.fork()
 if os.name != "posix":
@@ -43,8 +49,16 @@ if os.name != "posix":
     sys.exit(1)
 
 app = Typer(
-    add_completion=False, help="Autosave local files to your CircuitPython board"
+    add_completion=False,
+    no_args_is_help=True,
+    help="Autosave local files to your CircuitPython board",
 )
+config_app = Typer(
+    add_completion=False,
+    no_args_is_help=True,
+    help="Change config settings for circlink",
+)
+app.add_typer(config_app, name="config")
 
 
 def _ensure_app_folder_setup() -> None:
@@ -55,6 +69,17 @@ def _ensure_app_folder_setup() -> None:
 
     ensure_links_folder()
     ensure_ledger_file()
+    ensure_settings_file()
+
+
+def ensure_settings_file() -> None:
+    """Ensure the settings file is set up"""
+
+    # TODO: Check for settings file
+    # TODO: Use template settings file if none exists
+    settings_path = pathlib.Path(SETTINGS_FILE)
+    if not settings_path.exists():
+        shutil.copy("../templates/settings.yaml", SETTINGS_FILE)
 
 
 @app.command()
@@ -529,3 +554,55 @@ def ledger() -> None:
         print("No files being tracked by circlink")
         raise Exit()
     print(tabulate(ledger_entries, headers=("Write Path", "Link", "Process ID")))
+
+
+@config_app.callback(invoke_without_command=True)
+def config_callback(
+    filepath: bool = Option(
+        False, "--filepath", "-f", help="Print the settings file location"
+    )
+) -> None:
+    """Callback for the config subcommand"""
+    if filepath:
+        print(f"Settings file: {os.path.abspath(SETTINGS_FILE)}")
+        raise Exit()
+
+
+def get_settings():
+    """Get the contents of the settings file"""
+
+    with open(SETTINGS_FILE, mode="r", encoding="utf-8") as yamlfile:
+        return yaml.safe_load(yamlfile)
+
+
+@config_app.command(name="view")
+def config_view(
+    config_path: str = Argument("all", help="The setting to view, using dot notation")
+) -> None:
+    """View a config setting for circlink"""
+
+    setting = get_settings()
+    if config_path == "all":
+        print(json.dumps(setting, indent=4))
+        raise Exit()
+
+    config_args = config_path.split(".")
+
+    try:
+        for extra_arg in config_args[:-1]:
+            setting = setting[extra_arg]
+        value = setting[config_args[-1]]
+    except KeyError as err:
+        print(f"Setting {config_path} does not exist")
+        raise Exit(1) from err
+
+    print(f"{config_path}:")
+    print(json.dumps(value, indent=4))
+
+    # with open(SETTINGS_FILE, mode="w", encoding="utf-8") as yamlfile:
+    #    yaml.safe_dump(settings, yamlfile,)
+
+
+@config_app.command(name="edit")
+def config_edit() -> None:
+    """Edit a config setting for circlink"""
