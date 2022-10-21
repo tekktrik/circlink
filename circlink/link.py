@@ -13,11 +13,33 @@ import time
 import json
 import pathlib
 import shutil
-from typing import Dict, List, Union
+import csv
+import functools
+import fcntl
+from collections import namedtuple
+from typing import Dict, List, Union, Iterator, Optional, Literal
 from typer import get_app_dir, Exit
+
 
 APP_DIRECTORY = get_app_dir("circlink")
 LINKS_DIRECTORY = os.path.join(APP_DIRECTORY, "links")
+LEDGER_FILE = os.path.join(APP_DIRECTORY, "ledger.csv")
+
+LedgerEntry = namedtuple("LedgerEntry", ("filename", "link_id", "process_id"))
+
+
+def ensure_links_folder() -> None:
+    """Ensure the links folder is created"""
+
+    if not os.path.exists(LINKS_DIRECTORY):
+        os.mkdir(LINKS_DIRECTORY)
+
+
+def ensure_ledger_file() -> None:
+    """Ensure the ledger file exists, or create it if not"""
+
+    ledger_path = pathlib.Path(LEDGER_FILE)
+    ledger_path.touch(exist_ok=True)
 
 
 # pylint: disable=too-many-instance-attributes
@@ -200,6 +222,7 @@ class CircuitPythonLink:
 
         return [file for file in all_potential if file.is_file()]
 
+    # pylint: disable=too-many-branches
     def begin_monitoring(self) -> None:
         """Monitor the listed file(s) for changes"""
 
@@ -222,9 +245,16 @@ class CircuitPythonLink:
         read_path_basis_str = os.path.join("..", read_path_basis_str)
 
         for read_file in read_files:
-            update_map[read_file] = read_file.stat().st_mtime
-            if not self._skip_presave:
-                self._copy_file(self._write_path, read_file, self.base_dir)
+            ledger_file_path = str(
+                self._get_write_filepath(self.write_path, read_file, self.base_dir)
+            )
+            if append_to_ledger(
+                LedgerEntry(ledger_file_path, self.link_id, self.process_id),
+                expect_entry=False,
+            ):
+                update_map[read_file] = read_file.stat().st_mtime
+                if not self._skip_presave:
+                    self._copy_file(self._write_path, read_file, self.base_dir)
 
         marked_delete = []
 
@@ -238,7 +268,16 @@ class CircuitPythonLink:
             read_files = self._get_files_monitored()
             new_files: List[pathlib.Path] = []
             for file in read_files:
-                if file not in update_map:
+                ledger_file_path = str(
+                    self._get_write_filepath(self.write_path, file, self.base_dir)
+                )
+                if (
+                    append_to_ledger(
+                        LedgerEntry(ledger_file_path, self.link_id, self.process_id),
+                        expect_entry=False,
+                    )
+                    and file not in update_map
+                ):
                     new_files.append(file)
             for file in new_files:
                 update_map[file] = file.stat().st_mtime
@@ -261,18 +300,39 @@ class CircuitPythonLink:
             # Delete marked files
             for file in marked_delete:
                 self._delete_file(self._write_path, file, self.base_dir)
+                ledger_file_path = str(
+                    self._get_write_filepath(self.write_path, file, self.base_dir)
+                )
+                ledger_entry = LedgerEntry(
+                    ledger_file_path, self.link_id, self.process_id
+                )
+                remove_from_ledger(ledger_entry, expect_entry=True)
                 try:
                     del update_map[file]
                 except KeyError:
                     pass
             marked_delete = []
 
+        # Remove files from ledger
+        for file in self._get_files_monitored():
+            ledger_entry = LedgerEntry(
+                str(file.resolve()), self.link_id, self.process_id
+            )
+            remove_from_ledger(ledger_entry, expect_entry=True)
+
         self.end_flag = True
         self._stopped = True
         self.save_link()
 
+    @staticmethod
+    def _get_write_filepath(
+        write_path: pathlib.Path, read_file: pathlib.Path, base_dir: pathlib.Path
+    ) -> pathlib.Path:
+        read_file_relative = read_file.relative_to(base_dir)
+        return write_path / read_file_relative
+
+    @staticmethod
     def _copy_file(
-        self,
         write_path: pathlib.Path,
         read_file: pathlib.Path,
         base_dir: pathlib.Path,
@@ -285,8 +345,8 @@ class CircuitPythonLink:
 
         shutil.copyfile(str(read_file.resolve()), file_dest.resolve())
 
+    @staticmethod
     def _delete_file(
-        self,
         write_path: pathlib.Path,
         read_file: pathlib.Path,
         base_dir: pathlib.Path,
@@ -297,3 +357,89 @@ class CircuitPythonLink:
 
         if file_dest.resolve().exists():
             os.remove(file_dest.resolve())
+
+
+def with_ledger(mode: str = "a"):
+    """
+    Decorator for using the ledger file; manages locking and
+    unlocking the file
+    """
+
+    def decorator_with_ledger(func):
+        """Decorator for working with the ledger file"""
+
+        @functools.wraps(func)
+        def wrapper_with_ledger(
+            entry: LedgerEntry,
+            *,
+            expect_entry: Optional[bool] = None,
+            use_lock: bool = True,
+        ) -> bool:
+            """Edit the ledger"""
+
+            with open(LEDGER_FILE, mode=mode, encoding="utf-8") as filedesc:
+
+                if use_lock:
+                    fcntl.lockf(filedesc, fcntl.LOCK_EX)
+
+                if (expect_entry is None) or (
+                    expect_entry == (entry.filename in iter_ledger_filenames())
+                ):
+                    result = func(entry, filedesc=filedesc)
+                else:
+                    result = False
+
+                if use_lock:
+                    fcntl.lockf(filedesc, fcntl.LOCK_UN)
+
+                return result
+
+        return wrapper_with_ledger
+
+    return decorator_with_ledger
+
+
+@with_ledger(mode="a")
+def append_to_ledger(entry: LedgerEntry, **args) -> Literal[True]:
+    """Add a file to the ledger; returns whether the file actually
+    was added (True) or if it already existed (False)
+    """
+
+    csvwriter = csv.writer(args["filedesc"])
+    csvwriter.writerow(entry)
+    return True
+
+
+@with_ledger(mode="w")
+def remove_from_ledger(entry: LedgerEntry, **args) -> Literal[True]:
+    """Remove a file from the ledger; returns whether the file actually
+    was removed (True) or if it didn't exist (False)
+    """
+
+    csvwriter = csv.writer(args["filedesc"])
+    for existing_entry in iter_ledger_filenames(False):
+        if existing_entry != entry:
+            csvwriter.writerow(existing_entry)
+    return True
+
+
+def iter_ledger_entries(use_lock: bool = True) -> Iterator[LedgerEntry]:
+    """Iterate through ledger entries"""
+
+    with open(LEDGER_FILE, mode="r+", encoding="utf-8") as csvfile:
+        if use_lock:
+            fcntl.lockf(csvfile, fcntl.LOCK_EX)
+        csvreader = csv.reader(csvfile)
+        for ledger_entry in csvreader:
+            yield LedgerEntry(
+                ledger_entry[0], int(ledger_entry[1]), int(ledger_entry[2])
+            )
+        if use_lock:
+            fcntl.lockf(csvfile, fcntl.LOCK_UN)
+
+
+def iter_ledger_filenames(use_lock: bool = True) -> Iterator[str]:
+    """Iterate through ledger entry filenames"""
+
+    for entry in iter_ledger_entries(use_lock):
+        yield entry.filename

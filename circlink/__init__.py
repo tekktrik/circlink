@@ -21,7 +21,14 @@ import psutil
 from typer import Typer, Option, Argument, Exit
 from circup import find_device
 from tabulate import tabulate
-from circlink.link import LINKS_DIRECTORY, APP_DIRECTORY, CircuitPythonLink
+from circlink.link import (
+    LINKS_DIRECTORY,
+    APP_DIRECTORY,
+    CircuitPythonLink,
+    ensure_links_folder,
+    ensure_ledger_file,
+    iter_ledger_entries,
+)
 
 _TableRowEntry: TypeAlias = Tuple[
     int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
@@ -45,8 +52,8 @@ def _ensure_app_folder_setup() -> None:
     if not os.path.exists(APP_DIRECTORY):
         os.mkdir(APP_DIRECTORY)
 
-    if not os.path.exists(LINKS_DIRECTORY):
-        os.mkdir(LINKS_DIRECTORY)
+    ensure_links_folder()
+    ensure_ledger_file()
 
 
 @app.command()
@@ -463,14 +470,14 @@ def about_cb() -> None:
 
     print("Originally built with love by Tekktrik")
     print("Happy hackin'!")
-    Exit()
+    raise Exit()
 
 
 def version_cb() -> None:
     """Display the current version of circlink"""
 
     print(__version__)
-    Exit()
+    raise Exit()
 
 
 @app.callback(invoke_without_command=True)
@@ -484,6 +491,8 @@ def callback(
     ),
 ) -> None:
     """Display the current version of circlink"""
+
+    _ensure_app_folder_setup()
 
     if version:
         version_cb()
@@ -502,15 +511,15 @@ def reset_cb() -> None:
     print("Removed circlink app directory, settngs and history deleted!")
     print("These will be created on next use of circlink.")
     print("Please check the integrity of any files handled by circlink.")
-    Exit()
+    raise Exit()
 
 
-def main() -> None:
-    """Main function that runs when ``circlink`` is called as a CLI"""
+@app.command()
+def ledger() -> None:
+    """View the ledger of files controlled by links"""
 
-    _ensure_app_folder_setup()
-    app()
-
-
-if __name__ == "__main__":
-    main()
+    ledger_entries = list(iter_ledger_entries())
+    if not ledger_entries:
+        print("No files being tracked by circlink")
+        raise Exit()
+    print(tabulate(ledger_entries, headers=("Write Path", "Link", "Process ID")))
