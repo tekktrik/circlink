@@ -246,7 +246,7 @@ class CircuitPythonLink:
 
         for read_file in read_files:
             ledger_file_path = str(
-                self._get_write_filepath(self.write_path, read_file, self.base_dir)
+                self.get_write_filepath(self.write_path, read_file, self.base_dir)
             )
             if append_to_ledger(
                 LedgerEntry(ledger_file_path, self.link_id, self.process_id),
@@ -269,7 +269,7 @@ class CircuitPythonLink:
             new_files: List[pathlib.Path] = []
             for file in read_files:
                 ledger_file_path = str(
-                    self._get_write_filepath(self.write_path, file, self.base_dir)
+                    self.get_write_filepath(self.write_path, file, self.base_dir)
                 )
                 if (
                     append_to_ledger(
@@ -301,7 +301,7 @@ class CircuitPythonLink:
             for file in marked_delete:
                 self._delete_file(self._write_path, file, self.base_dir)
                 ledger_file_path = str(
-                    self._get_write_filepath(self.write_path, file, self.base_dir)
+                    self.get_write_filepath(self.write_path, file, self.base_dir)
                 )
                 ledger_entry = LedgerEntry(
                     ledger_file_path, self.link_id, self.process_id
@@ -325,9 +325,10 @@ class CircuitPythonLink:
         self.save_link()
 
     @staticmethod
-    def _get_write_filepath(
+    def get_write_filepath(
         write_path: pathlib.Path, read_file: pathlib.Path, base_dir: pathlib.Path
     ) -> pathlib.Path:
+        """Get the write filepath for a specific file"""
         read_file_relative = read_file.relative_to(base_dir)
         return write_path / read_file_relative
 
