@@ -204,7 +204,7 @@ def _stop_link(link_id: int, *, hard_fault: bool = True) -> bool:
         print(
             f"Problem encountered stopping link #{link_id}!\n"
             "Asscoiated proess either does not exist, was already "
-            "stopped, or isn't ciclink.\n"
+            "stopped, or isn't circlink.\n"
             "Consider using the clear command with the --force flag to "
             "clear it from the history."
         )
