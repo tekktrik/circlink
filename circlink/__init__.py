@@ -436,6 +436,11 @@ def view(
         raise Exit(code=1)
 
     show_list = _add_links_header()
+    if not get_settings()["display"]["info"]["process-id"]:
+        show_list = list(show_list)
+        show_list.remove("Process ID")
+        link_infos = [entry[:-1] for entry in link_infos]
+
     print(
         tabulate(
             link_infos,
@@ -553,10 +558,16 @@ def ledger() -> None:
     if not ledger_entries:
         print("No files being tracked by circlink")
         raise Exit()
+
+    table_headers = ("Write Path", "Link")
+    if get_settings()["display"]["info"]["process-id"]:
+        table_headers = table_headers + ("Process ID",)
+    else:
+        ledger_entries = [entry[:-1] for entry in ledger_entries]
     print(
         tabulate(
             ledger_entries,
-            headers=("Write Path", "Link", "Process ID"),
+            headers=table_headers,
             tablefmt=get_settings()["display"]["table"]["format"],
         )
     )

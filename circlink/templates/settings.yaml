@@ -3,5 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 display:
+  info:
+    process-id: false
   table:
     format: simple
