@@ -344,7 +344,7 @@ def clear(
     _clear_link(link_id, force=force)
 
 
-def _add_links_header() -> List[Tuple[str, ...]]:
+def _add_links_header() -> Tuple[str, ...]:
     """Get the header row for the links list"""
 
     return (
