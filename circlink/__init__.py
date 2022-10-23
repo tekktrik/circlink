@@ -75,8 +75,6 @@ def _ensure_app_folder_setup() -> None:
 def ensure_settings_file() -> None:
     """Ensure the settings file is set up"""
 
-    # TODO: Check for settings file
-    # TODO: Use template settings file if none exists
     settings_path = pathlib.Path(SETTINGS_FILE)
     if not settings_path.exists():
         settings_file = os.path.join(__file__, "..", "templates", "settings.yaml")
@@ -597,13 +595,46 @@ def config_view(
         print(f"Setting {config_path} does not exist")
         raise Exit(1) from err
 
-    print(f"{config_path}:")
-    print(json.dumps(value, indent=4))
-
-    # with open(SETTINGS_FILE, mode="w", encoding="utf-8") as yamlfile:
-    #    yaml.safe_dump(settings, yamlfile,)
+    print(f"{config_path}: {json.dumps(value, indent=4)}")
 
 
 @config_app.command(name="edit")
-def config_edit() -> None:
+def config_edit(
+    config_path: str = Argument("all", help="The setting to view, using dot notation"),
+    value: str = Argument(..., help="The value to set for the setting"),
+) -> None:
     """Edit a config setting for circlink"""
+
+    orig_setting = get_settings()
+    setting = orig_setting
+    config_args = config_path.split(".")
+
+    if value.lower() == "true":
+        value = True
+    elif value.lower() == "false":
+        value = False
+
+    try:
+        for extra_arg in config_args[:-1]:
+            setting = setting[extra_arg]
+        prev_value = setting[config_args[-1]]
+        prev_value_type = type(prev_value)
+        if prev_value_type == dict:
+            raise ValueError
+        if prev_value_type == bool and value not in (True, False):
+            raise TypeError
+        setting[config_args[-1]] = prev_value_type(value)
+    except KeyError as err:
+        print(f"Setting {config_path} does not exist")
+        raise Exit(1) from err
+    except TypeError as err:
+        print(
+            f"Cannot use that value for this setting, must be of type {prev_value_type}"
+        )
+        raise Exit(1) from err
+    except ValueError as err:
+        print("Cannot change this setting, please change the sub-settings within it")
+        raise Exit(1) from err
+
+    with open(SETTINGS_FILE, mode="w", encoding="utf-8") as yamlfile:
+        yaml.safe_dump(orig_setting, yamlfile)
