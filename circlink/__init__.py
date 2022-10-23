@@ -440,7 +440,7 @@ def view(
         tabulate(
             link_infos,
             headers=show_list,
-            tablefmt=get_settings()["rich"]["table"]["format"],
+            tablefmt=get_settings()["display"]["table"]["format"],
         )
     )
 
@@ -557,7 +557,7 @@ def ledger() -> None:
         tabulate(
             ledger_entries,
             headers=("Write Path", "Link", "Process ID"),
-            tablefmt=get_settings()["rich"]["table"]["format"],
+            tablefmt=get_settings()["display"]["table"]["format"],
         )
     )
 
