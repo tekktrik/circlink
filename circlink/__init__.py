@@ -330,9 +330,6 @@ def clear(
         for link_entry in link_entries:
             _clear_link(link_entry[0], force=force, hard_fault=False)
         raise Exit()
-        # while clear("last", force=force):
-        #    pass
-        # return True
     if link_id == "last":
         link_id = str(CircuitPythonLink.get_next_link_id() - 1)
         if link_id == "0":
