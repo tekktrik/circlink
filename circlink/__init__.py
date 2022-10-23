@@ -462,7 +462,7 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
             int(link_id)
             pattern = "link" + link_id + ".json"
         except ValueError as err:
-            print('Please use a valid link ID, "last", or "all" (default)')
+            print('Please use a valid link ID, "last", or "all"')
             raise Exit(code=1) from err
 
     link_list = _get_links_list(pattern)
