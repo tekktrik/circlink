@@ -20,7 +20,7 @@ from typing import List, Tuple
 from typing_extensions import TypeAlias
 import psutil
 import yaml
-from typer import Typer, Option, Argument, Exit, Context
+from typer import Typer, Option, Argument, Exit
 from circup import find_device
 from tabulate import tabulate
 from circlink.link import (
@@ -79,7 +79,7 @@ def ensure_settings_file() -> None:
     # TODO: Use template settings file if none exists
     settings_path = pathlib.Path(SETTINGS_FILE)
     if not settings_path.exists():
-        shutil.copy("../templates/settings.yaml", SETTINGS_FILE)
+        shutil.copy(os.path.join(__file__, "templates", "settings.yaml"), SETTINGS_FILE)
 
 
 @app.command()
