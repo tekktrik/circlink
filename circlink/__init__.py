@@ -401,7 +401,7 @@ def _get_links_list(
 
 @app.command()
 def view(
-    link_id: str = Argument(..., help="Link ID / 'last' / 'all'"),
+    link_id: str = Argument("all", help="Link ID / 'last' / 'all' (default)"),
     *,
     abs_paths: bool = Option(
         False, "--abs-path", "-a", help="Show the read path as absolute"
@@ -435,7 +435,6 @@ def view(
         print("This link ID is not in the history")
         raise Exit(code=1)
 
-    # link_infos.insert(0, _add_links_header())
     show_list = _add_links_header()
     print(tabulate(link_infos, headers=show_list))
 
