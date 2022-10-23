@@ -79,7 +79,8 @@ def ensure_settings_file() -> None:
     # TODO: Use template settings file if none exists
     settings_path = pathlib.Path(SETTINGS_FILE)
     if not settings_path.exists():
-        shutil.copy(os.path.join(__file__, "templates", "settings.yaml"), SETTINGS_FILE)
+        settings_file = os.path.join(__file__, "..", "templates", "settings.yaml")
+        shutil.copy(os.path.abspath(settings_file), SETTINGS_FILE)
 
 
 @app.command()
