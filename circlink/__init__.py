@@ -77,8 +77,7 @@ def ensure_settings_file() -> None:
 
     settings_path = pathlib.Path(SETTINGS_FILE)
     if not settings_path.exists():
-        settings_file = os.path.join(__file__, "..", "templates", "settings.yaml")
-        shutil.copy(os.path.abspath(settings_file), SETTINGS_FILE)
+        _reset_config_file()
 
 
 @app.command()
@@ -552,19 +551,27 @@ def ledger() -> None:
     if not ledger_entries:
         print("No files being tracked by circlink")
         raise Exit()
-    print(tabulate(ledger_entries, headers=("Write Path", "Link", "Process ID")))
+
+def _reset_config_file() -> None:
+    settings_file = os.path.join(__file__, "..", "templates", "settings.yaml")
+    shutil.copy(os.path.abspath(settings_file), SETTINGS_FILE)
 
 
 @config_app.callback(invoke_without_command=True)
 def config_callback(
     filepath: bool = Option(
         False, "--filepath", "-f", help="Print the settings file location"
-    )
+    ),
+    reset: bool = Option(
+        False, "--reset", help="Reset the configuration settings to their defaults"
+    ),
 ) -> None:
     """Callback for the config subcommand"""
     if filepath:
         print(f"Settings file: {os.path.abspath(SETTINGS_FILE)}")
         raise Exit()
+    if reset:
+        _reset_config_file()
 
 
 def get_settings():
