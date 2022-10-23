@@ -436,7 +436,13 @@ def view(
         raise Exit(code=1)
 
     show_list = _add_links_header()
-    print(tabulate(link_infos, headers=show_list))
+    print(
+        tabulate(
+            link_infos,
+            headers=show_list,
+            tablefmt=get_settings()["rich"]["table"]["format"],
+        )
+    )
 
 
 @app.command()
@@ -547,6 +553,14 @@ def ledger() -> None:
     if not ledger_entries:
         print("No files being tracked by circlink")
         raise Exit()
+    print(
+        tabulate(
+            ledger_entries,
+            headers=("Write Path", "Link", "Process ID"),
+            tablefmt=get_settings()["rich"]["table"]["format"],
+        )
+    )
+
 
 def _reset_config_file() -> None:
     settings_file = os.path.join(__file__, "..", "templates", "settings.yaml")
