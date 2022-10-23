@@ -46,6 +46,10 @@ circlink = "circlink:app"
 
 [tool.setuptools]
 packages = ["circlink"]
+include-package-data = true
+
+[tools.setuptools.package-data]
+templates = ["*.yaml"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

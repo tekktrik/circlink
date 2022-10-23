@@ -14,10 +14,12 @@ import time
 import signal
 import pathlib
 import shutil
+import json
 from datetime import datetime, timedelta
 from typing import List, Tuple
 from typing_extensions import TypeAlias
 import psutil
+import yaml
 from typer import Typer, Option, Argument, Exit
 from circup import find_device
 from tabulate import tabulate
@@ -31,11 +33,15 @@ from circlink.link import (
     remove_from_ledger,
 )
 
+__version__ = "0.0.0+auto.0"
+
+
 _TableRowEntry: TypeAlias = Tuple[
     int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
 ]
 
-__version__ = "0.0.0+auto.0"
+SETTINGS_FILE = os.path.join(APP_DIRECTORY, "settings.yaml")
+_ALLOW_EXTRA_ARGS = dict(allow_extra_args=True, ignore_unknown_options=True)
 
 # Prevent running on non-POSIX systems that don't have os.fork()
 if os.name != "posix":
@@ -43,8 +49,16 @@ if os.name != "posix":
     sys.exit(1)
 
 app = Typer(
-    add_completion=False, help="Autosave local files to your CircuitPython board"
+    add_completion=False,
+    no_args_is_help=True,
+    help="Autosave local files to your CircuitPython board",
 )
+config_app = Typer(
+    add_completion=False,
+    no_args_is_help=True,
+    help="Change config settings for circlink",
+)
+app.add_typer(config_app, name="config")
 
 
 def _ensure_app_folder_setup() -> None:
@@ -55,6 +69,15 @@ def _ensure_app_folder_setup() -> None:
 
     ensure_links_folder()
     ensure_ledger_file()
+    ensure_settings_file()
+
+
+def ensure_settings_file() -> None:
+    """Ensure the settings file is set up"""
+
+    settings_path = pathlib.Path(SETTINGS_FILE)
+    if not settings_path.exists():
+        _reset_config_file()
 
 
 @app.command()
@@ -307,9 +330,6 @@ def clear(
         for link_entry in link_entries:
             _clear_link(link_entry[0], force=force, hard_fault=False)
         raise Exit()
-        # while clear("last", force=force):
-        #    pass
-        # return True
     if link_id == "last":
         link_id = str(CircuitPythonLink.get_next_link_id() - 1)
         if link_id == "0":
@@ -324,7 +344,7 @@ def clear(
     _clear_link(link_id, force=force)
 
 
-def _add_links_header() -> List[Tuple[str, ...]]:
+def _add_links_header() -> Tuple[str, ...]:
     """Get the header row for the links list"""
 
     return (
@@ -381,7 +401,7 @@ def _get_links_list(
 
 @app.command()
 def view(
-    link_id: str = Argument(..., help="Link ID / 'last' / 'all'"),
+    link_id: str = Argument("all", help="Link ID / 'last' / 'all' (default)"),
     *,
     abs_paths: bool = Option(
         False, "--abs-path", "-a", help="Show the read path as absolute"
@@ -415,9 +435,19 @@ def view(
         print("This link ID is not in the history")
         raise Exit(code=1)
 
-    # link_infos.insert(0, _add_links_header())
     show_list = _add_links_header()
-    print(tabulate(link_infos, headers=show_list))
+    if not get_settings()["display"]["info"]["process-id"]:
+        show_list = list(show_list)
+        show_list.remove("Process ID")
+        link_infos = [entry[:-1] for entry in link_infos]
+
+    print(
+        tabulate(
+            link_infos,
+            headers=show_list,
+            tablefmt=get_settings()["display"]["table"]["format"],
+        )
+    )
 
 
 @app.command()
@@ -437,7 +467,7 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
             int(link_id)
             pattern = "link" + link_id + ".json"
         except ValueError as err:
-            print('Please use a valid link ID, "last", or "all" (default)')
+            print('Please use a valid link ID, "last", or "all"')
             raise Exit(code=1) from err
 
     link_list = _get_links_list(pattern)
@@ -528,4 +558,111 @@ def ledger() -> None:
     if not ledger_entries:
         print("No files being tracked by circlink")
         raise Exit()
-    print(tabulate(ledger_entries, headers=("Write Path", "Link", "Process ID")))
+
+    table_headers = ("Write Path", "Link")
+    if get_settings()["display"]["info"]["process-id"]:
+        table_headers = table_headers + ("Process ID",)
+    else:
+        ledger_entries = [entry[:-1] for entry in ledger_entries]
+    print(
+        tabulate(
+            ledger_entries,
+            headers=table_headers,
+            tablefmt=get_settings()["display"]["table"]["format"],
+        )
+    )
+
+
+def _reset_config_file() -> None:
+    settings_file = os.path.join(__file__, "..", "templates", "settings.yaml")
+    shutil.copy(os.path.abspath(settings_file), SETTINGS_FILE)
+
+
+@config_app.callback(invoke_without_command=True)
+def config_callback(
+    filepath: bool = Option(
+        False, "--filepath", "-f", help="Print the settings file location"
+    ),
+    reset: bool = Option(
+        False, "--reset", help="Reset the configuration settings to their defaults"
+    ),
+) -> None:
+    """Callback for the config subcommand"""
+    if filepath:
+        print(f"Settings file: {os.path.abspath(SETTINGS_FILE)}")
+        raise Exit()
+    if reset:
+        _reset_config_file()
+
+
+def get_settings():
+    """Get the contents of the settings file"""
+
+    with open(SETTINGS_FILE, mode="r", encoding="utf-8") as yamlfile:
+        return yaml.safe_load(yamlfile)
+
+
+@config_app.command(name="view")
+def config_view(
+    config_path: str = Argument("all", help="The setting to view, using dot notation")
+) -> None:
+    """View a config setting for circlink"""
+
+    setting = get_settings()
+    if config_path == "all":
+        print(json.dumps(setting, indent=4))
+        raise Exit()
+
+    config_args = config_path.split(".")
+
+    try:
+        for extra_arg in config_args[:-1]:
+            setting = setting[extra_arg]
+        value = setting[config_args[-1]]
+    except KeyError as err:
+        print(f"Setting {config_path} does not exist")
+        raise Exit(1) from err
+
+    print(f"{config_path}: {json.dumps(value, indent=4)}")
+
+
+@config_app.command(name="edit")
+def config_edit(
+    config_path: str = Argument("all", help="The setting to view, using dot notation"),
+    value: str = Argument(..., help="The value to set for the setting"),
+) -> None:
+    """Edit a config setting for circlink"""
+
+    orig_setting = get_settings()
+    setting = orig_setting
+    config_args = config_path.split(".")
+
+    if value.lower() == "true":
+        value = True
+    elif value.lower() == "false":
+        value = False
+
+    try:
+        for extra_arg in config_args[:-1]:
+            setting = setting[extra_arg]
+        prev_value = setting[config_args[-1]]
+        prev_value_type = type(prev_value)
+        if prev_value_type == dict:
+            raise ValueError
+        if prev_value_type == bool and value not in (True, False):
+            raise TypeError
+        setting[config_args[-1]] = prev_value_type(value)
+    except KeyError as err:
+        print(f"Setting {config_path} does not exist")
+        raise Exit(1) from err
+    except TypeError as err:
+        print(
+            f"Cannot use that value for this setting, must be of type {prev_value_type}"
+        )
+        raise Exit(1) from err
+    except ValueError as err:
+        print("Cannot change this setting, please change the sub-settings within it")
+        raise Exit(1) from err
+
+    with open(SETTINGS_FILE, mode="w", encoding="utf-8") as yamlfile:
+        yaml.safe_dump(orig_setting, yamlfile)
