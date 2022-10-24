@@ -178,7 +178,7 @@ def _start(
 
     # Detect whether bad read path/pattern provided
     try:
-        link.read_path.relative_to(base_dir)
+        link.read_path.resolve().relative_to(base_dir)
     except ValueError as err:
         print(
             "Error occurred, please ensure the read file/pattern "
