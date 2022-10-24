@@ -21,10 +21,12 @@ from typing import Dict, List, Union, Iterator, Optional, Literal
 from typer import get_app_dir, Exit
 
 
+# Filepath constants
 APP_DIRECTORY = get_app_dir("circlink")
 LINKS_DIRECTORY = os.path.join(APP_DIRECTORY, "links")
 LEDGER_FILE = os.path.join(APP_DIRECTORY, "ledger.csv")
 
+# Namedtuple for ledger entries
 LedgerEntry = namedtuple("LedgerEntry", ("filename", "link_id", "process_id"))
 
 
@@ -70,7 +72,7 @@ class CircuitPythonLink:
             print(
                 "Read path is not valid, please reference a specific file or glob pattern for files"
             )
-            raise Exit(code=1)
+            raise Exit(1)
 
         self._name = name
         self._recursive = recursive
@@ -140,6 +142,7 @@ class CircuitPythonLink:
     def save_link(self, *, save_directory: str = LINKS_DIRECTORY) -> pathlib.Path:
         """Save the link object as a file in the specified folder"""
 
+        # Create the representative object
         link_obj = {
             "name": self._name,
             "read": str(self._read_path.resolve()),
@@ -154,13 +157,16 @@ class CircuitPythonLink:
             "stopped": self._stopped,
         }
 
+        # Get the filename
         save_filepath = self.link_id_to_filename(
             self._link_id, directory=save_directory
         )
 
+        # Save the object as a JSON file
         with open(save_filepath, mode="w", encoding="utf-8") as linkfile:
             json.dump(link_obj, linkfile, indent=4)
 
+        # Return the save filepath
         return pathlib.Path(save_filepath)
 
     @classmethod
@@ -233,17 +239,11 @@ class CircuitPythonLink:
         if self._wipe_dest:
             shutil.rmtree(self._write_path)
 
+        # Get the files that match the read path
         read_files = self._get_files_monitored()
         update_map: Dict[pathlib.Path, float] = {}
 
-        read_path_basis_str = (
-            self._read_path.name
-            if self._read_path.is_dir()
-            else self._read_path.parts[-2]
-        )
-
-        read_path_basis_str = os.path.join("..", read_path_basis_str)
-
+        # Add all the files to ledger and monitor struct if not already
         for read_file in read_files:
             ledger_file_path = str(
                 self.get_write_filepath(self.write_path, read_file, self.base_dir)
@@ -256,11 +256,14 @@ class CircuitPythonLink:
                 if not self._skip_presave:
                     self._copy_file(self._write_path, read_file, self.base_dir)
 
+        # Initialize list for files marked for deletion
         marked_delete = []
 
+        # Load the link and repeatedly load while not flagged to stop
         temp_link = self.load_link_by_num(self._link_id)
         while not temp_link.end_flag:
 
+            # Load the link
             temp_link = self.load_link_by_num(self._link_id)
             time.sleep(0.1)
 
@@ -279,11 +282,14 @@ class CircuitPythonLink:
                     and file not in update_map
                 ):
                     new_files.append(file)
+
+            # Update the modified time for new files
             for file in new_files:
                 update_map[file] = file.stat().st_mtime
                 self._copy_file(self.write_path, file, self.base_dir)
             new_files = []
 
+            # Iterate through listed existing files
             for file, last_modtime in update_map.items():
 
                 # Detect deleted
@@ -320,6 +326,7 @@ class CircuitPythonLink:
             )
             remove_from_ledger(ledger_entry, expect_entry=True)
 
+        # Mark link as end flag set and stopped, then save
         self.end_flag = True
         self._stopped = True
         self.save_link()
@@ -379,11 +386,14 @@ def with_ledger(mode: str = "a"):
         ) -> bool:
             """Edit the ledger"""
 
+            # Open the ledger file
             with open(LEDGER_FILE, mode=mode, encoding="utf-8") as filedesc:
 
+                # Use a file lock if requested
                 if use_lock:
                     fcntl.lockf(filedesc, fcntl.LOCK_EX)
 
+                # Handle the entry
                 if (expect_entry is None) or (
                     expect_entry == (entry.filename in iter_ledger_filenames())
                 ):
@@ -391,6 +401,7 @@ def with_ledger(mode: str = "a"):
                 else:
                     result = False
 
+                # Release the file lock if needed
                 if use_lock:
                     fcntl.lockf(filedesc, fcntl.LOCK_UN)
 
