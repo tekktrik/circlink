@@ -24,6 +24,7 @@ from typer import Typer, Option, Argument, Exit
 from circup import find_device
 from tabulate import tabulate
 from circlink.link import (
+    LEDGER_FILE,
     LINKS_DIRECTORY,
     APP_DIRECTORY,
     CircuitPythonLink,
@@ -340,6 +341,10 @@ def clear(
         link_entries = _get_links_list("*")
         for link_entry in link_entries:
             _clear_link(link_entry[0], force=force, hard_fault=False)
+        # Clean ledger if needed
+        if force:
+            os.remove(LEDGER_FILE)
+            ensure_ledger_file()
         raise Exit()
 
     # If clearing the last link link, calculate its link ID
