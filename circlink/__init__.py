@@ -188,7 +188,7 @@ def _start(
         raise Exit(1) from err
 
     # Fork the process to begin start the link
-    pid = os.fork()
+    pid = os.fork()  # pylint: disable=no-member
 
     if pid:  # Current process, pid is that of spawned process
 
