@@ -3,14 +3,14 @@
 # SPDX-License-Identifier: MIT
 
 repos:
-  - repo: https://github.com/python/black
-    rev: 22.6.0
-    hooks:
-      - id: black
   - repo: https://github.com/fsfe/reuse-tool
     rev: v0.14.0
     hooks:
       - id: reuse
+  - repo: https://github.com/psf/black
+    rev: 22.10.0
+    hooks:
+      - id: black
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.2.0
     hooks:
@@ -21,7 +21,17 @@ repos:
       - id: requirements-txt-fixer
       - id: end-of-file-fixer
       - id: trailing-whitespace
-  - repo: https://github.com/pycqa/pylint
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.1.0
+    hooks:
+      - id: pyupgrade
+        args:
+          - --py38-plus
+  - repo: https://github.com/PyCQA/pydocstyle
+    rev: 6.1.1
+    hooks:
+      - id: pydocstyle
+  - repo: https://github.com/PyCQA/pylint
     rev: v2.15.4
     hooks:
       - id: pylint
