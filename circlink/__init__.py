@@ -8,31 +8,27 @@ The main script handling CLI interactions for ``circlink``.
 Author(s): Alec Delaney (Tekktrik)
 """
 
+import json
 import os
-import sys
-import time
-import signal
 import pathlib
 import shutil
-import json
+import signal
+import sys
+import time
 from datetime import datetime, timedelta
 from typing import List, Tuple
-from typing_extensions import TypeAlias
+
 import psutil
 import yaml
-from typer import Typer, Option, Argument, Exit
 from circup import find_device
 from tabulate import tabulate
-from circlink.link import (
-    LEDGER_FILE,
-    LINKS_DIRECTORY,
-    APP_DIRECTORY,
-    CircuitPythonLink,
-    ensure_links_folder,
-    ensure_ledger_file,
-    iter_ledger_entries,
-    remove_from_ledger,
-)
+from typer import Argument, Exit, Option, Typer
+from typing_extensions import TypeAlias
+
+from circlink.link import (APP_DIRECTORY, LEDGER_FILE, LINKS_DIRECTORY,
+                           CircuitPythonLink, ensure_ledger_file,
+                           ensure_links_folder, iter_ledger_entries,
+                           remove_from_ledger)
 
 __version__ = "0.0.0+auto.0"
 

@@ -8,18 +8,18 @@ Information and methods pertaining to links and link files.
 Author(s): Alec Delaney (Tekktrik)
 """
 
-import os
-import time
+import csv
+import fcntl
+import functools
 import json
+import os
 import pathlib
 import shutil
-import csv
-import functools
-import fcntl
+import time
 from collections import namedtuple
-from typing import Dict, List, Union, Iterator, Optional, Literal
-from typer import get_app_dir, Exit
+from typing import Dict, Iterator, List, Literal, Optional, Union
 
+from typer import Exit, get_app_dir
 
 # Filepath constants
 APP_DIRECTORY = get_app_dir("circlink")
