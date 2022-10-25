@@ -16,6 +16,7 @@ repos:
     hooks:
       - id: check-yaml
       - id: check-toml
+      - id: check-json
       - id: mixed-line-ending
       - id: requirements-txt-fixer
       - id: end-of-file-fixer
