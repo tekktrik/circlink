@@ -3,33 +3,35 @@
 # SPDX-License-Identifier: MIT
 
 """
-The main script handling CLI interactions for ``circlink``
+The main script handling CLI interactions for ``circlink``.
 
 Author(s): Alec Delaney (Tekktrik)
 """
 
+import json
 import os
-import sys
-import time
-import signal
 import pathlib
 import shutil
-import json
+import signal
+import sys
+import time
 from datetime import datetime, timedelta
 from typing import List, Tuple
-from typing_extensions import TypeAlias
+
 import psutil
 import yaml
-from typer import Typer, Option, Argument, Exit
 from circup import find_device
 from tabulate import tabulate
+from typer import Argument, Exit, Option, Typer
+from typing_extensions import TypeAlias
+
 from circlink.link import (
+    APP_DIRECTORY,
     LEDGER_FILE,
     LINKS_DIRECTORY,
-    APP_DIRECTORY,
     CircuitPythonLink,
-    ensure_links_folder,
     ensure_ledger_file,
+    ensure_links_folder,
     iter_ledger_entries,
     remove_from_ledger,
 )
@@ -64,8 +66,7 @@ app.add_typer(config_app, name="config")
 
 
 def _ensure_app_folder_setup() -> None:
-    """Ensures that the configuration folder exists"""
-
+    """Ensure that the configuration folder exists."""
     if not os.path.exists(APP_DIRECTORY):
         os.mkdir(APP_DIRECTORY)
 
@@ -75,8 +76,7 @@ def _ensure_app_folder_setup() -> None:
 
 
 def ensure_settings_file() -> None:
-    """Ensure the settings file is set up"""
-
+    """Ensure the settings file is set up."""
     settings_path = pathlib.Path(SETTINGS_FILE)
     if not settings_path.exists():
         _reset_config_file()
@@ -113,8 +113,7 @@ def start(
         help="Skip the inital save and write performed when opening a link",
     ),
 ) -> None:
-    """Start a CircuitPython link"""
-
+    """Start a CircuitPython link."""
     _start(
         read_path,
         write_path,
@@ -138,8 +137,7 @@ def _start(
     wipe_dest: bool = False,
     skip_presave: bool = False,
 ) -> None:
-    """Backend of starting a link"""
-
+    """Start a link (backend)."""
     # Only allow recursive setting with glob patterns
     if "*" not in read_path and recursive:
         print("--recursive can only be used with glob patterns!")
@@ -188,7 +186,7 @@ def _start(
         raise Exit(1) from err
 
     # Fork the process to begin start the link
-    pid = os.fork()
+    pid = os.fork()  # pylint: disable=no-member
 
     if pid:  # Current process, pid is that of spawned process
 
@@ -240,8 +238,7 @@ def stop(
         help="Clear the history of the specified link(s) as well",
     ),
 ) -> bool:
-    """Stop a CircuitPython link"""
-
+    """Stop a CircuitPython link."""
     # If stopping all links, stop links using the "last" option until done
     if link_id == "all":
         link_entries = _get_links_list("*")
@@ -272,8 +269,7 @@ def stop(
 
 
 def _stop_link(link_id: int, *, hard_fault: bool = True) -> bool:
-    """The backend of stopping a link"""
-
+    """Stop a link (backend)."""
     # Attempt to get the link by ID
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
@@ -334,8 +330,7 @@ def clear(
         False, "--force", "-f", help="Ignore warning and force clear from history"
     ),
 ) -> None:
-    """Clear the link from the history"""
-
+    """Clear the link from the history."""
     # If clearing all links, repetitively clear the last link
     if link_id == "all":
         link_entries = _get_links_list("*")
@@ -365,8 +360,7 @@ def clear(
 
 
 def _clear_link(link_id: int, *, force: bool = False, hard_fault: bool = False) -> bool:
-    """The backend of clearing a link"""
-
+    """Clear a link (backend)."""
     # Get the link object by link ID
     try:
         link = CircuitPythonLink.load_link_by_num(link_id)
@@ -395,8 +389,7 @@ def _clear_link(link_id: int, *, force: bool = False, hard_fault: bool = False) 
 
 
 def _add_links_header() -> Tuple[str, ...]:
-    """Get the header row for the links list"""
-
+    """Get the header row for the links list."""
     return (
         "ID",
         "Name",
@@ -412,8 +405,7 @@ def _add_links_header() -> Tuple[str, ...]:
 def _get_links_list(
     pattern: str, *, abs_paths: bool = False, name: str = ""
 ) -> List[_TableRowEntry]:
-    """Get the information about links"""
-
+    """Get the information about links."""
     # Get the paths of all the exiting links
     link_paths = pathlib.Path(LINKS_DIRECTORY).glob(pattern)
 
@@ -469,8 +461,7 @@ def view(
         False, "--abs-path", "-a", help="Show the read path as absolute"
     ),
 ) -> None:
-    """List links in the history"""
-
+    """List links in the history."""
     # For recursion purposes, note whether link ID is "last"
     last_requested_flag = False
 
@@ -520,8 +511,7 @@ def view(
 
 @app.command()
 def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> None:
-    """Restart a link"""
-
+    """Restart a link."""
     # Handle cases of "all" or "last", or parse link ID
     if link_id == "all":
         pattern = "*"
@@ -562,8 +552,7 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
 
 @app.command()
 def detect() -> None:
-    """Attempt to detect a CircuitPython board"""
-
+    """Attempt to detect a CircuitPython board."""
     device = find_device()
     if device:
         print("CircuitPython device detected:", device)
@@ -572,16 +561,14 @@ def detect() -> None:
 
 
 def about_cb() -> None:
-    """Display information about circlink"""
-
+    """Display information about circlink."""
     print("Originally built with love by Tekktrik")
     print("Happy hackin'!")
     raise Exit()
 
 
 def version_cb() -> None:
-    """Display the current version of circlink"""
-
+    """Display the current version of circlink."""
     print(__version__)
     raise Exit()
 
@@ -596,8 +583,7 @@ def callback(
         False, "--reset", help="Reset the circlink configuration settings"
     ),
 ) -> None:
-    """Display the current version of circlink"""
-
+    """Display the current version of circlink."""
     _ensure_app_folder_setup()
 
     if version:
@@ -609,10 +595,11 @@ def callback(
 
 
 def reset_cb() -> None:
-    """Reset the app directory, useful if you upgrade circlink and there
-    are breaking changes
     """
+    Reset the app directory.
 
+    Useful if you upgrade circlink and there are breaking changes.
+    """
     shutil.rmtree(APP_DIRECTORY)
     print("Removed circlink app directory, settngs and history deleted!")
     print("These will be created on next use of circlink.")
@@ -622,8 +609,7 @@ def reset_cb() -> None:
 
 @app.command()
 def ledger() -> None:
-    """View the ledger of files controlled by links"""
-
+    """View the ledger of files controlled by links."""
     # Get the list of ledger entries if possible
     ledger_entries = list(iter_ledger_entries())
     if not ledger_entries:
@@ -648,7 +634,7 @@ def ledger() -> None:
 
 
 def _reset_config_file() -> None:
-    """Reset the config file"""
+    """Reset the config file."""
     settings_file = os.path.join(__file__, "..", "templates", "settings.yaml")
     shutil.copy(os.path.abspath(settings_file), SETTINGS_FILE)
 
@@ -662,7 +648,7 @@ def config_callback(
         False, "--reset", help="Reset the configuration settings to their defaults"
     ),
 ) -> None:
-    """Callback for the config subcommand"""
+    """Run the callback for the config subcommand."""
     if filepath:
         print(f"Settings file: {os.path.abspath(SETTINGS_FILE)}")
         raise Exit()
@@ -671,9 +657,8 @@ def config_callback(
 
 
 def get_settings():
-    """Get the contents of the settings file"""
-
-    with open(SETTINGS_FILE, mode="r", encoding="utf-8") as yamlfile:
+    """Get the contents of the settings file."""
+    with open(SETTINGS_FILE, encoding="utf-8") as yamlfile:
         return yaml.safe_load(yamlfile)
 
 
@@ -681,8 +666,7 @@ def get_settings():
 def config_view(
     config_path: str = Argument("all", help="The setting to view, using dot notation")
 ) -> None:
-    """View a config setting for circlink"""
-
+    """View a config setting for circlink."""
     # Get the settings, show all settings if no specific on is specified
     setting = get_settings()
     if config_path == "all":
@@ -708,8 +692,7 @@ def config_edit(
     config_path: str = Argument("all", help="The setting to view, using dot notation"),
     value: str = Argument(..., help="The value to set for the setting"),
 ) -> None:
-    """Edit a config setting for circlink"""
-
+    """Edit a config setting for circlink."""
     # Get the settings, use another reference to parse
     orig_setting = get_settings()
     setting = orig_setting

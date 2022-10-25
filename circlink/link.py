@@ -3,23 +3,23 @@
 # SPDX-License-Identifier: MIT
 
 """
-Information and methods pertaining to links and link files
+Information and methods pertaining to links and link files.
 
 Author(s): Alec Delaney (Tekktrik)
 """
 
-import os
-import time
+import csv
+import fcntl
+import functools
 import json
+import os
 import pathlib
 import shutil
-import csv
-import functools
-import fcntl
+import time
 from collections import namedtuple
-from typing import Dict, List, Union, Iterator, Optional, Literal
-from typer import get_app_dir, Exit
+from typing import Dict, Iterator, List, Literal, Optional, Union
 
+from typer import Exit, get_app_dir
 
 # Filepath constants
 APP_DIRECTORY = get_app_dir("circlink")
@@ -31,22 +31,20 @@ LedgerEntry = namedtuple("LedgerEntry", ("filename", "link_id", "process_id"))
 
 
 def ensure_links_folder() -> None:
-    """Ensure the links folder is created"""
-
+    """Ensure the links folder is created."""
     if not os.path.exists(LINKS_DIRECTORY):
         os.mkdir(LINKS_DIRECTORY)
 
 
 def ensure_ledger_file() -> None:
-    """Ensure the ledger file exists, or create it if not"""
-
+    """Ensure the ledger file exists, or create it if not."""
     ledger_path = pathlib.Path(LEDGER_FILE)
     ledger_path.touch(exist_ok=True)
 
 
 # pylint: disable=too-many-instance-attributes
 class CircuitPythonLink:
-    """Thelink to the device"""
+    """The link to the device."""
 
     def __init__(
         self,
@@ -63,7 +61,7 @@ class CircuitPythonLink:
         end_flag: bool = False,
         stopped: bool = False,
     ) -> None:
-
+        """Initialize the link."""
         self._read_path = pathlib.Path(read_path)
         self._write_path = pathlib.Path(write_path)
         self._base_dir = pathlib.Path(base_dir)
@@ -86,8 +84,7 @@ class CircuitPythonLink:
 
     @staticmethod
     def get_next_link_id() -> int:
-        """Get the next link ID"""
-
+        """Get the next link ID."""
         link_gen = pathlib.Path(LINKS_DIRECTORY).glob("link*.json")
         link_nums = [int(link_file.name[4:-5]) for link_file in link_gen]
         if not link_nums:
@@ -96,52 +93,51 @@ class CircuitPythonLink:
 
     @property
     def read_path(self) -> pathlib.Path:
-        """The read path for the link"""
+        """Get the read path for the link."""
         return self._read_path
 
     @property
     def write_path(self) -> pathlib.Path:
-        """The write path for the link"""
+        """Get the write path for the link."""
         return self._write_path
 
     @property
     def base_dir(self) -> pathlib.Path:
-        """The base directory for the read path"""
+        """Get the base directory for the read path."""
         return self._base_dir
 
     @property
     def name(self) -> str:
-        """The link name"""
+        """Get the link name."""
         return self._name
 
     @property
     def recursive(self) -> bool:
-        """Whether the link is recursive for the read path"""
+        """Whether the link is recursive for the read path."""
         return self._recursive
 
     @property
     def link_id(self) -> int:
-        """The link ID"""
+        """Link ID."""
         return self._link_id
 
     @property
     def skip_presave(self) -> bool:
-        """Whether a forced save was enacted at the start of the link"""
+        """Whether a forced save was enacted at the start of the link."""
         return self._skip_presave
 
     @property
     def wipe_dest(self) -> bool:
-        """Whether the wrie path was recursively wiped before starting the link"""
+        """Whether the wrie path was recursively wiped before starting the link."""
         return self._wipe_dest
 
     @property
     def stopped(self) -> bool:
-        """Whether the link is marked has stopped"""
+        """Whether the link is marked has stopped."""
         return self._stopped
 
     def save_link(self, *, save_directory: str = LINKS_DIRECTORY) -> pathlib.Path:
-        """Save the link object as a file in the specified folder"""
-
+        """Save the link object as a file in the specified folder."""
         # Create the representative object
         link_obj = {
             "name": self._name,
@@ -171,9 +167,8 @@ class CircuitPythonLink:
 
     @classmethod
     def load_link_by_filepath(cls, link_filepath: str) -> "CircuitPythonLink":
-        """Create a CircuitPythonLink from a JSON file, by filepath"""
-
-        with open(link_filepath, mode="r", encoding="utf-8") as linkfile:
+        """Create a CircuitPythonLink from a JSON file, by filepath."""
+        with open(link_filepath, encoding="utf-8") as linkfile:
             link_obj = json.load(linkfile)
 
         link = cls(
@@ -196,20 +191,18 @@ class CircuitPythonLink:
 
     @classmethod
     def load_link_by_num(cls, link_num: int) -> "CircuitPythonLink":
-        """Create a CircuitPythonLink from a JSON file, by number"""
-
+        """Create a CircuitPythonLink from a JSON file, by number."""
         link_filepath = cls.link_id_to_filename(link_num)
         return cls.load_link_by_filepath(link_filepath)
 
     @staticmethod
     def link_id_to_filename(num: int, *, directory: str = LINKS_DIRECTORY) -> str:
-        """Create a link filename from a link ID"""
+        """Create a link filename from a link ID."""
         return os.path.join(directory, "link" + str(num) + ".json")
 
     @staticmethod
     def filename_to_link_id(filepath: Union[pathlib.Path, str]) -> int:
-        """Get a link ID from a filename"""
-
+        """Get a link ID from a filename."""
         if isinstance(filepath, str):
             filepath = pathlib.Path(filepath)
 
@@ -230,8 +223,7 @@ class CircuitPythonLink:
 
     # pylint: disable=too-many-branches
     def begin_monitoring(self) -> None:
-        """Monitor the listed file(s) for changes"""
-
+        """Monitor the listed file(s) for changes."""
         # Ensure the write path exists
         os.makedirs(self._write_path, exist_ok=True)
 
@@ -335,7 +327,7 @@ class CircuitPythonLink:
     def get_write_filepath(
         write_path: pathlib.Path, read_file: pathlib.Path, base_dir: pathlib.Path
     ) -> pathlib.Path:
-        """Get the write filepath for a specific file"""
+        """Get the write filepath for a specific file."""
         read_file_relative = read_file.relative_to(base_dir)
         return write_path / read_file_relative
 
@@ -370,12 +362,13 @@ class CircuitPythonLink:
 
 def with_ledger(mode: str = "a"):
     """
-    Decorator for using the ledger file; manages locking and
-    unlocking the file
+    Use the ledger file.
+
+    Manages locking and unlocking the file
     """
 
     def decorator_with_ledger(func):
-        """Decorator for working with the ledger file"""
+        """Work with the ledger file."""
 
         @functools.wraps(func)
         def wrapper_with_ledger(
@@ -384,8 +377,7 @@ def with_ledger(mode: str = "a"):
             expect_entry: Optional[bool] = None,
             use_lock: bool = True,
         ) -> bool:
-            """Edit the ledger"""
-
+            """Edit the ledger."""
             # Open the ledger file
             with open(LEDGER_FILE, mode=mode, encoding="utf-8") as filedesc:
 
@@ -414,10 +406,12 @@ def with_ledger(mode: str = "a"):
 
 @with_ledger(mode="a")
 def append_to_ledger(entry: LedgerEntry, **args) -> Literal[True]:
-    """Add a file to the ledger; returns whether the file actually
-    was added (True) or if it already existed (False)
     """
+    Add a file to the ledger.
 
+    Returns whether the file actually was added (True) or if it already
+    existed (False).
+    """
     csvwriter = csv.writer(args["filedesc"])
     csvwriter.writerow(entry)
     return True
@@ -425,10 +419,12 @@ def append_to_ledger(entry: LedgerEntry, **args) -> Literal[True]:
 
 @with_ledger(mode="w")
 def remove_from_ledger(entry: LedgerEntry, **args) -> Literal[True]:
-    """Remove a file from the ledger; returns whether the file actually
-    was removed (True) or if it didn't exist (False)
     """
+    Remove a file from the ledger.
 
+    Returns whether the file actually was removed (True) or if it didn't
+    exist (False).
+    """
     csvwriter = csv.writer(args["filedesc"])
     for existing_entry in iter_ledger_filenames(False):
         if existing_entry != entry:
@@ -437,8 +433,7 @@ def remove_from_ledger(entry: LedgerEntry, **args) -> Literal[True]:
 
 
 def iter_ledger_entries(use_lock: bool = True) -> Iterator[LedgerEntry]:
-    """Iterate through ledger entries"""
-
+    """Iterate through ledger entries."""
     with open(LEDGER_FILE, mode="r+", encoding="utf-8") as csvfile:
         if use_lock:
             fcntl.lockf(csvfile, fcntl.LOCK_EX)
@@ -452,7 +447,6 @@ def iter_ledger_entries(use_lock: bool = True) -> Iterator[LedgerEntry]:
 
 
 def iter_ledger_filenames(use_lock: bool = True) -> Iterator[str]:
-    """Iterate through ledger entry filenames"""
-
+    """Iterate through ledger entry filenames."""
     for entry in iter_ledger_entries(use_lock):
         yield entry.filename
