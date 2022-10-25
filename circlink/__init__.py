@@ -25,10 +25,16 @@ from tabulate import tabulate
 from typer import Argument, Exit, Option, Typer
 from typing_extensions import TypeAlias
 
-from circlink.link import (APP_DIRECTORY, LEDGER_FILE, LINKS_DIRECTORY,
-                           CircuitPythonLink, ensure_ledger_file,
-                           ensure_links_folder, iter_ledger_entries,
-                           remove_from_ledger)
+from circlink.link import (
+    APP_DIRECTORY,
+    LEDGER_FILE,
+    LINKS_DIRECTORY,
+    CircuitPythonLink,
+    ensure_ledger_file,
+    ensure_links_folder,
+    iter_ledger_entries,
+    remove_from_ledger,
+)
 
 __version__ = "0.0.0+auto.0"
 
