@@ -21,12 +21,8 @@ from typer import Exit
 from typing_extensions import TypeAlias
 
 from circlink import LINKS_DIRECTORY
-from circlink.link import (
-    CircuitPythonLink,
-    LedgerEntry,
-    iter_ledger_entries,
-    remove_from_ledger,
-)
+from circlink.ledger import iter_ledger_entries, remove_from_ledger
+from circlink.link import CircuitPythonLink, LedgerEntry
 
 # Type aliases
 _TableRowEntry: TypeAlias = Tuple[
