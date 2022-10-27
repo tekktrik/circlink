@@ -24,7 +24,7 @@ config_app = Typer(
 
 
 @config_app.callback(invoke_without_command=True)
-def config_callback(
+def callback(
     filepath: bool = Option(
         False, "--filepath", "-f", help="Print the settings file location"
     ),
@@ -40,8 +40,8 @@ def config_callback(
         reset_config_file()
 
 
-@config_app.command(name="view")
-def config_view(
+@config_app.command()
+def view(
     config_path: str = Argument("all", help="The setting to view, using dot notation")
 ) -> None:
     """View a config setting for circlink."""
@@ -65,8 +65,8 @@ def config_view(
     print(f"{config_path}: {json.dumps(value, indent=4)}")
 
 
-@config_app.command(name="edit")
-def config_edit(
+@config_app.command()
+def edit(
     config_path: str = Argument("all", help="The setting to view, using dot notation"),
     value: str = Argument(..., help="The value to set for the setting"),
 ) -> None:

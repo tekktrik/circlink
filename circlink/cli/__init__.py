@@ -16,7 +16,6 @@ from circup import find_device
 from tabulate import tabulate
 from typer import Argument, Exit, Option, Typer
 
-import circlink.cli.config
 from circlink import (
     APP_DIRECTORY,
     __version__,
@@ -30,6 +29,7 @@ from circlink.backend import (
     start_backend,
     stop_backend,
 )
+from circlink.cli import config, workspace
 from circlink.ledger import iter_ledger_entries
 from circlink.link import CircuitPythonLink
 
@@ -44,7 +44,8 @@ app = Typer(
     no_args_is_help=True,
     help="Autosave local files to your CircuitPython board",
 )
-app.add_typer(circlink.cli.config.config_app, name="config")
+app.add_typer(config.config_app, name="config")
+app.add_typer(workspace.workspace_app, name="workspace")
 
 
 @app.command()
