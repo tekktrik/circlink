@@ -168,6 +168,10 @@ def start_backend(
         try:
             link.begin_monitoring()
         except FileNotFoundError:
+            clean_up_files = link.get_files_monitored()
+            for file in clean_up_files:
+                ledger_entry = LedgerEntry(str(file.resolve()), link.link_id, link.process_id)
+                remove_from_ledger(ledger_entry)
             Exit(1)
         raise Exit()
 
