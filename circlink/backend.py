@@ -63,7 +63,7 @@ def start_backend(
     # Warn if the board (or write path in general) is not write accessible
     if not os.access(write_path, os.W_OK):
         print("Cannot write to the device or specified path")
-        print("If using CircuitPython board, please ensure it is nounted")
+        print("If using CircuitPython board, please ensure it is mounted")
         raise Exit(1)
 
     # Set the base directory is current directory if not provided
