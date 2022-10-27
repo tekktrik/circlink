@@ -42,7 +42,7 @@ classifiers = [
 dynamic = ["dependencies", "optional-dependencies"]
 
 [project.scripts]
-circlink = "circlink:app"
+circlink = "circlink.cli:app"
 
 [tool.setuptools]
 packages = ["circlink"]

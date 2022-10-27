@@ -19,27 +19,12 @@ import time
 from collections import namedtuple
 from typing import Dict, Iterator, List, Literal, Optional, Union
 
-from typer import Exit, get_app_dir
+from typer import Exit
 
-# Filepath constants
-APP_DIRECTORY = get_app_dir("circlink")
-LINKS_DIRECTORY = os.path.join(APP_DIRECTORY, "links")
-LEDGER_FILE = os.path.join(APP_DIRECTORY, "ledger.csv")
+from circlink import LEDGER_FILE, LINKS_DIRECTORY
 
 # Namedtuple for ledger entries
 LedgerEntry = namedtuple("LedgerEntry", ("filename", "link_id", "process_id"))
-
-
-def ensure_links_folder() -> None:
-    """Ensure the links folder is created."""
-    if not os.path.exists(LINKS_DIRECTORY):
-        os.mkdir(LINKS_DIRECTORY)
-
-
-def ensure_ledger_file() -> None:
-    """Ensure the ledger file exists, or create it if not."""
-    ledger_path = pathlib.Path(LEDGER_FILE)
-    ledger_path.touch(exist_ok=True)
 
 
 # pylint: disable=too-many-instance-attributes
