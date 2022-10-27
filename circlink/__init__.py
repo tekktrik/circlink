@@ -9,6 +9,7 @@ Author(s): Alec Delaney (Tekktrik)
 """
 
 import os
+import pathlib
 import shutil
 
 import typer
@@ -33,3 +34,32 @@ def reset_config_file() -> None:
     """Reset the config file."""
     settings_file = os.path.join(__file__, "..", "templates", "settings.yaml")
     shutil.copy(os.path.abspath(settings_file), SETTINGS_FILE)
+
+
+def ensure_app_folder_setup() -> None:
+    """Ensure that the configuration folder exists."""
+    if not os.path.exists(APP_DIRECTORY):
+        os.mkdir(APP_DIRECTORY)
+
+    ensure_links_folder()
+    ensure_ledger_file()
+    ensure_settings_file()
+
+
+def ensure_settings_file() -> None:
+    """Ensure the settings file is set up."""
+    settings_path = pathlib.Path(SETTINGS_FILE)
+    if not settings_path.exists():
+        reset_config_file()
+
+
+def ensure_links_folder() -> None:
+    """Ensure the links folder is created."""
+    if not os.path.exists(LINKS_DIRECTORY):
+        os.mkdir(LINKS_DIRECTORY)
+
+
+def ensure_ledger_file() -> None:
+    """Ensure the ledger file exists, or create it if not."""
+    ledger_path = pathlib.Path(LEDGER_FILE)
+    ledger_path.touch(exist_ok=True)

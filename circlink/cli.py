@@ -20,16 +20,14 @@ from typer import Argument, Exit, Option, Typer
 
 from circlink import (
     APP_DIRECTORY,
-    LEDGER_FILE,
     SETTINGS_FILE,
     __version__,
+    ensure_app_folder_setup,
     get_settings,
     reset_config_file,
 )
 from circlink.backend import (
     clear_backend,
-    ensure_app_folder_setup,
-    ensure_ledger_file,
     get_links_header,
     get_links_list,
     start_backend,
@@ -154,10 +152,6 @@ def clear(
         link_entries = get_links_list("*")
         for link_entry in link_entries:
             clear_backend(link_entry[0], force=force, hard_fault=False)
-        # Clean ledger if needed
-        if force:
-            os.remove(LEDGER_FILE)
-            ensure_ledger_file()
         raise Exit()
 
     # If clearing the last link link, calculate its link ID

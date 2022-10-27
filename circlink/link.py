@@ -193,8 +193,8 @@ class CircuitPythonLink:
 
         return int(filepath.name[4:-5])
 
-    def _get_files_monitored(self):
-
+    def get_files_monitored(self):
+        """Get the existing files to be monitored by this link."""
         file_pattern = self._read_path.name
         file_parent = self._read_path.parent
 
@@ -217,7 +217,7 @@ class CircuitPythonLink:
             shutil.rmtree(self._write_path)
 
         # Get the files that match the read path
-        read_files = self._get_files_monitored()
+        read_files = self.get_files_monitored()
         update_map: Dict[pathlib.Path, float] = {}
 
         # Add all the files to ledger and monitor struct if not already
@@ -245,7 +245,7 @@ class CircuitPythonLink:
             time.sleep(0.1)
 
             # Detect new files
-            read_files = self._get_files_monitored()
+            read_files = self.get_files_monitored()
             new_files: List[pathlib.Path] = []
             for file in read_files:
                 ledger_file_path = str(
@@ -297,7 +297,7 @@ class CircuitPythonLink:
             marked_delete = []
 
         # Remove files from ledger
-        for file in self._get_files_monitored():
+        for file in self.get_files_monitored():
             ledger_entry = LedgerEntry(
                 str(file.resolve()), self.link_id, self.process_id
             )

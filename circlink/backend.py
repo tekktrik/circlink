@@ -20,15 +20,10 @@ from circup import find_device
 from typer import Exit
 from typing_extensions import TypeAlias
 
-from circlink import (
-    APP_DIRECTORY,
-    LEDGER_FILE,
-    LINKS_DIRECTORY,
-    SETTINGS_FILE,
-    reset_config_file,
-)
+from circlink import LINKS_DIRECTORY
 from circlink.link import (
     CircuitPythonLink,
+    LedgerEntry,
     iter_ledger_entries,
     remove_from_ledger,
 )
@@ -38,38 +33,8 @@ _TableRowEntry: TypeAlias = Tuple[
     int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
 ]
 
-# Get the location of the settigns file
 
-
-def ensure_app_folder_setup() -> None:
-    """Ensure that the configuration folder exists."""
-    if not os.path.exists(APP_DIRECTORY):
-        os.mkdir(APP_DIRECTORY)
-
-    ensure_links_folder()
-    ensure_ledger_file()
-    ensure_settings_file()
-
-
-def ensure_settings_file() -> None:
-    """Ensure the settings file is set up."""
-    settings_path = pathlib.Path(SETTINGS_FILE)
-    if not settings_path.exists():
-        reset_config_file()
-
-
-def ensure_links_folder() -> None:
-    """Ensure the links folder is created."""
-    if not os.path.exists(LINKS_DIRECTORY):
-        os.mkdir(LINKS_DIRECTORY)
-
-
-def ensure_ledger_file() -> None:
-    """Ensure the ledger file exists, or create it if not."""
-    ledger_path = pathlib.Path(LEDGER_FILE)
-    ledger_path.touch(exist_ok=True)
-
-
+# pylint: disable=too-many-locals,too-many-branches
 def start_backend(
     read_path: str,
     write_path: str,
@@ -168,9 +133,10 @@ def start_backend(
         try:
             link.begin_monitoring()
         except FileNotFoundError:
-            clean_up_files = link.get_files_monitored()
-            for file in clean_up_files:
-                ledger_entry = LedgerEntry(str(file.resolve()), link.link_id, link.process_id)
+            for file in link.get_files_monitored():
+                ledger_entry = LedgerEntry(
+                    str(file.resolve()), link.link_id, link.process_id
+                )
                 remove_from_ledger(ledger_entry)
             Exit(1)
         raise Exit()
