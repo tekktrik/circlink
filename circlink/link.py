@@ -19,27 +19,12 @@ import time
 from collections import namedtuple
 from typing import Dict, Iterator, List, Literal, Optional, Union
 
-from typer import Exit, get_app_dir
+from typer import Exit
 
-# Filepath constants
-APP_DIRECTORY = get_app_dir("circlink")
-LINKS_DIRECTORY = os.path.join(APP_DIRECTORY, "links")
-LEDGER_FILE = os.path.join(APP_DIRECTORY, "ledger.csv")
+from circlink import LEDGER_FILE, LINKS_DIRECTORY
 
 # Namedtuple for ledger entries
 LedgerEntry = namedtuple("LedgerEntry", ("filename", "link_id", "process_id"))
-
-
-def ensure_links_folder() -> None:
-    """Ensure the links folder is created."""
-    if not os.path.exists(LINKS_DIRECTORY):
-        os.mkdir(LINKS_DIRECTORY)
-
-
-def ensure_ledger_file() -> None:
-    """Ensure the ledger file exists, or create it if not."""
-    ledger_path = pathlib.Path(LEDGER_FILE)
-    ledger_path.touch(exist_ok=True)
 
 
 # pylint: disable=too-many-instance-attributes
@@ -208,8 +193,8 @@ class CircuitPythonLink:
 
         return int(filepath.name[4:-5])
 
-    def _get_files_monitored(self):
-
+    def get_files_monitored(self):
+        """Get the existing files to be monitored by this link."""
         file_pattern = self._read_path.name
         file_parent = self._read_path.parent
 
@@ -232,7 +217,7 @@ class CircuitPythonLink:
             shutil.rmtree(self._write_path)
 
         # Get the files that match the read path
-        read_files = self._get_files_monitored()
+        read_files = self.get_files_monitored()
         update_map: Dict[pathlib.Path, float] = {}
 
         # Add all the files to ledger and monitor struct if not already
@@ -260,7 +245,7 @@ class CircuitPythonLink:
             time.sleep(0.1)
 
             # Detect new files
-            read_files = self._get_files_monitored()
+            read_files = self.get_files_monitored()
             new_files: List[pathlib.Path] = []
             for file in read_files:
                 ledger_file_path = str(
@@ -312,7 +297,7 @@ class CircuitPythonLink:
             marked_delete = []
 
         # Remove files from ledger
-        for file in self._get_files_monitored():
+        for file in self.get_files_monitored():
             ledger_entry = LedgerEntry(
                 str(file.resolve()), self.link_id, self.process_id
             )
