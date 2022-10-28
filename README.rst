@@ -3,7 +3,7 @@ CircLink
 
 .. image:: https://img.shields.io/readthedocs/circlink/latest
    :target: https://circlink.readthedocs.io/en/latest/
-   :alt: Read the Docs (version)
+   :alt: Read the Docs (latest)
 
 .. image:: https://img.shields.io/github/workflow/status/tekktrik/circlink/Build%20CI/main
    :target:  https://github.com/tekktrik/circlink/actions
@@ -23,11 +23,11 @@ CircLink
 
 .. image:: https://img.shields.io/maintenance/yes/2022
    :target: https://github.com/tekktrik/circlink/issues
-   :alt: Maintenance
+   :alt: Maintenaned
 
 .. image:: https://raw.githubusercontent.com/adafruit/Adafruit_CircuitPython_Bundle/main/badges/adafruit_discord.svg
     :target: https://adafru.it/discord
-    :alt: Discord
+    :alt: Adafruit Discord
 
 Write code locally and have it automatically pushed to your CircuitPython device
 
