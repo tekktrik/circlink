@@ -10,6 +10,8 @@
    :caption: Contents:
 
    basic
+   config
+
 
 
 Indices and tables
