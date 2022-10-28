@@ -8,32 +8,24 @@ The main script handling CLI interactions for ``circlink``.
 Author(s): Alec Delaney (Tekktrik)
 """
 
-import json
 import os
 import shutil
 import sys
 
-import yaml
 from circup import find_device
 from tabulate import tabulate
 from typer import Argument, Exit, Option, Typer
 
 from circlink import (
     APP_DIRECTORY,
-    SETTINGS_FILE,
     __version__,
     ensure_app_folder_setup,
     get_settings,
-    reset_config_file,
 )
-from circlink.backend import (
-    clear_backend,
-    get_links_header,
-    get_links_list,
-    start_backend,
-    stop_backend,
-)
-from circlink.link import CircuitPythonLink, iter_ledger_entries
+from circlink.backend import clear_backend, start_backend, stop_backend
+from circlink.cli import config, workspace
+from circlink.ledger import iter_ledger_entries
+from circlink.link import CircuitPythonLink, get_links_header, get_links_list
 
 # Prevent running on non-POSIX systems that don't have os.fork()
 if os.name != "posix":
@@ -46,12 +38,8 @@ app = Typer(
     no_args_is_help=True,
     help="Autosave local files to your CircuitPython board",
 )
-config_app = Typer(
-    add_completion=False,
-    no_args_is_help=True,
-    help="Change config settings for circlink",
-)
-app.add_typer(config_app, name="config")
+app.add_typer(config.config_app, name="config")
+app.add_typer(workspace.workspace_app, name="workspace")
 
 
 @app.command()
@@ -96,6 +84,7 @@ def start(
         wipe_dest=wipe_dest,
         skip_presave=skip_presave,
     )
+    workspace.set_cws_name("")
 
 
 @app.command()
@@ -265,7 +254,7 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
                 recursive=link[5],
                 path=True,
             )
-            clear(link[0])
+            clear_backend(link[0])
 
 
 @app.command()
@@ -349,90 +338,3 @@ def ledger() -> None:
             tablefmt=get_settings()["display"]["table"]["format"],
         )
     )
-
-
-@config_app.callback(invoke_without_command=True)
-def config_callback(
-    filepath: bool = Option(
-        False, "--filepath", "-f", help="Print the settings file location"
-    ),
-    reset: bool = Option(
-        False, "--reset", help="Reset the configuration settings to their defaults"
-    ),
-) -> None:
-    """Run the callback for the config subcommand."""
-    if filepath:
-        print(f"Settings file: {os.path.abspath(SETTINGS_FILE)}")
-        raise Exit()
-    if reset:
-        reset_config_file()
-
-
-@config_app.command(name="view")
-def config_view(
-    config_path: str = Argument("all", help="The setting to view, using dot notation")
-) -> None:
-    """View a config setting for circlink."""
-    # Get the settings, show all settings if no specific on is specified
-    setting = get_settings()
-    if config_path == "all":
-        print(json.dumps(setting, indent=4))
-        raise Exit()
-
-    # Get the specified settings
-    config_args = config_path.split(".")
-    try:
-        for extra_arg in config_args[:-1]:
-            setting = setting[extra_arg]
-        value = setting[config_args[-1]]
-    except KeyError as err:
-        print(f"Setting {config_path} does not exist")
-        raise Exit(1) from err
-
-    # Show the specified setting
-    print(f"{config_path}: {json.dumps(value, indent=4)}")
-
-
-@config_app.command(name="edit")
-def config_edit(
-    config_path: str = Argument("all", help="The setting to view, using dot notation"),
-    value: str = Argument(..., help="The value to set for the setting"),
-) -> None:
-    """Edit a config setting for circlink."""
-    # Get the settings, use another reference to parse
-    orig_setting = get_settings()
-    setting = orig_setting
-    config_args = config_path.split(".")
-
-    # Handle bool conversions
-    if value.lower() == "true":
-        value = True
-    elif value.lower() == "false":
-        value = False
-
-    # Attempt to parse for the specified config setting and set it
-    try:
-        for extra_arg in config_args[:-1]:
-            setting = setting[extra_arg]
-        prev_value = setting[config_args[-1]]
-        prev_value_type = type(prev_value)
-        if prev_value_type == dict:
-            raise ValueError
-        if prev_value_type == bool and value not in (True, False):
-            raise TypeError
-        setting[config_args[-1]] = prev_value_type(value)
-    except KeyError as err:
-        print(f"Setting {config_path} does not exist")
-        raise Exit(1) from err
-    except TypeError as err:
-        print(
-            f"Cannot use that value for this setting, must be of type {prev_value_type}"
-        )
-        raise Exit(1) from err
-    except ValueError as err:
-        print("Cannot change this setting, please change the sub-settings within it")
-        raise Exit(1) from err
-
-    # Write the settings back to the file
-    with open(SETTINGS_FILE, mode="w", encoding="utf-8") as yamlfile:
-        yaml.safe_dump(orig_setting, yamlfile)

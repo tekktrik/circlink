@@ -8,24 +8,22 @@ Information and methods pertaining to links and link files.
 Author(s): Alec Delaney (Tekktrik)
 """
 
-import csv
-import fcntl
-import functools
 import json
 import os
 import pathlib
 import shutil
 import time
-from collections import namedtuple
-from typing import Dict, Iterator, List, Literal, Optional, Union
+from typing import Dict, List, Tuple, TypeAlias, Union
 
 from typer import Exit
 
-from circlink import LEDGER_FILE, LINKS_DIRECTORY
+from circlink import LINKS_DIRECTORY
+from circlink.ledger import LedgerEntry, append_to_ledger, remove_from_ledger
 
-# Namedtuple for ledger entries
-LedgerEntry = namedtuple("LedgerEntry", ("filename", "link_id", "process_id"))
-
+# Type aliases
+_TableRowEntry: TypeAlias = Tuple[
+    int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
+]
 
 # pylint: disable=too-many-instance-attributes
 class CircuitPythonLink:
@@ -345,93 +343,66 @@ class CircuitPythonLink:
             os.remove(file_dest.resolve())
 
 
-def with_ledger(mode: str = "a"):
-    """
-    Use the ledger file.
-
-    Manages locking and unlocking the file
-    """
-
-    def decorator_with_ledger(func):
-        """Work with the ledger file."""
-
-        @functools.wraps(func)
-        def wrapper_with_ledger(
-            entry: LedgerEntry,
-            *,
-            expect_entry: Optional[bool] = None,
-            use_lock: bool = True,
-        ) -> bool:
-            """Edit the ledger."""
-            # Open the ledger file
-            with open(LEDGER_FILE, mode=mode, encoding="utf-8") as filedesc:
-
-                # Use a file lock if requested
-                if use_lock:
-                    fcntl.lockf(filedesc, fcntl.LOCK_EX)
-
-                # Handle the entry
-                if (expect_entry is None) or (
-                    expect_entry == (entry.filename in iter_ledger_filenames())
-                ):
-                    result = func(entry, filedesc=filedesc)
-                else:
-                    result = False
-
-                # Release the file lock if needed
-                if use_lock:
-                    fcntl.lockf(filedesc, fcntl.LOCK_UN)
-
-                return result
-
-        return wrapper_with_ledger
-
-    return decorator_with_ledger
+def get_links_header() -> Tuple[str, ...]:
+    """Get the header row for the links list."""
+    return (
+        "ID",
+        "Name",
+        "Running?",
+        "Read Path",
+        "Write Path",
+        "Recursive?",
+        "Process ID",
+        "Base Directory",
+    )
 
 
-@with_ledger(mode="a")
-def append_to_ledger(entry: LedgerEntry, **args) -> Literal[True]:
-    """
-    Add a file to the ledger.
+def get_links_list(
+    pattern: str, *, abs_paths: bool = False, name: str = ""
+) -> List[_TableRowEntry]:
+    """Get the information about links."""
+    # Get the paths of all the exiting links
+    link_paths = pathlib.Path(LINKS_DIRECTORY).glob(pattern)
 
-    Returns whether the file actually was added (True) or if it already
-    existed (False).
-    """
-    csvwriter = csv.writer(args["filedesc"])
-    csvwriter.writerow(entry)
-    return True
+    # Populate the list of links
+    link_infos = []
+    for link_path in link_paths:
 
+        # Load link and start getting info
+        link = CircuitPythonLink.load_link_by_filepath(str(link_path))
+        link_id = link.link_id
+        link_name = link.name
+        link_running = not link.stopped
 
-@with_ledger(mode="w")
-def remove_from_ledger(entry: LedgerEntry, **args) -> Literal[True]:
-    """
-    Remove a file from the ledger.
+        # Attempt to use relative paths if possible
+        if not abs_paths:
+            try:
+                link_read = link.read_path.resolve().relative_to(os.getcwd())
+            except ValueError:
+                abs_paths = True
+        if abs_paths:
+            link_read = link.read_path.resolve()
 
-    Returns whether the file actually was removed (True) or if it didn't
-    exist (False).
-    """
-    csvwriter = csv.writer(args["filedesc"])
-    for existing_entry in iter_ledger_filenames(False):
-        if existing_entry != entry:
-            csvwriter.writerow(existing_entry)
-    return True
+        # Get remaining link info
+        link_write = link.write_path.resolve()
+        link_recursive = link.recursive
+        link_proc = link.process_id
+        link_base = link.base_dir
 
-
-def iter_ledger_entries(use_lock: bool = True) -> Iterator[LedgerEntry]:
-    """Iterate through ledger entries."""
-    with open(LEDGER_FILE, mode="r+", encoding="utf-8") as csvfile:
-        if use_lock:
-            fcntl.lockf(csvfile, fcntl.LOCK_EX)
-        csvreader = csv.reader(csvfile)
-        for ledger_entry in csvreader:
-            yield LedgerEntry(
-                ledger_entry[0], int(ledger_entry[1]), int(ledger_entry[2])
+        # If not specific named link is requested, append it
+        if not name or link_name == name:
+            link_infos.append(
+                (
+                    link_id,
+                    link_name,
+                    link_running,
+                    link_read,
+                    link_write,
+                    link_recursive,
+                    link_proc,
+                    link_base,
+                )
             )
-        if use_lock:
-            fcntl.lockf(csvfile, fcntl.LOCK_UN)
 
-
-def iter_ledger_filenames(use_lock: bool = True) -> Iterator[str]:
-    """Iterate through ledger entry filenames."""
-    for entry in iter_ledger_entries(use_lock):
-        yield entry.filename
+    # Return a sorted list of links
+    return sorted(link_infos, key=lambda x: x[0])
