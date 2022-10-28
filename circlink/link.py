@@ -13,13 +13,17 @@ import os
 import pathlib
 import shutil
 import time
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, TypeAlias, Union
 
 from typer import Exit
 
 from circlink import LINKS_DIRECTORY
 from circlink.ledger import LedgerEntry, append_to_ledger, remove_from_ledger
 
+# Type aliases
+_TableRowEntry: TypeAlias = Tuple[
+    int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
+]
 
 # pylint: disable=too-many-instance-attributes
 class CircuitPythonLink:
@@ -337,3 +341,68 @@ class CircuitPythonLink:
 
         if file_dest.resolve().exists():
             os.remove(file_dest.resolve())
+
+
+def get_links_header() -> Tuple[str, ...]:
+    """Get the header row for the links list."""
+    return (
+        "ID",
+        "Name",
+        "Running?",
+        "Read Path",
+        "Write Path",
+        "Recursive?",
+        "Process ID",
+        "Base Directory",
+    )
+
+
+def get_links_list(
+    pattern: str, *, abs_paths: bool = False, name: str = ""
+) -> List[_TableRowEntry]:
+    """Get the information about links."""
+    # Get the paths of all the exiting links
+    link_paths = pathlib.Path(LINKS_DIRECTORY).glob(pattern)
+
+    # Populate the list of links
+    link_infos = []
+    for link_path in link_paths:
+
+        # Load link and start getting info
+        link = CircuitPythonLink.load_link_by_filepath(str(link_path))
+        link_id = link.link_id
+        link_name = link.name
+        link_running = not link.stopped
+
+        # Attempt to use relative paths if possible
+        if not abs_paths:
+            try:
+                link_read = link.read_path.resolve().relative_to(os.getcwd())
+            except ValueError:
+                abs_paths = True
+        if abs_paths:
+            link_read = link.read_path.resolve()
+
+        # Get remaining link info
+        link_write = link.write_path.resolve()
+        link_recursive = link.recursive
+        link_proc = link.process_id
+        link_base = link.base_dir
+
+        # If not specific named link is requested, append it
+        if not name or link_name == name:
+            link_infos.append(
+                (
+                    link_id,
+                    link_name,
+                    link_running,
+                    link_read,
+                    link_write,
+                    link_recursive,
+                    link_proc,
+                    link_base,
+                )
+            )
+
+    # Return a sorted list of links
+    return sorted(link_infos, key=lambda x: x[0])

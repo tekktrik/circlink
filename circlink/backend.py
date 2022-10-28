@@ -9,25 +9,17 @@ Author(s): Alec Delaney (Tekktrik)
 """
 
 import os
-import pathlib
 import signal
 import time
 from datetime import datetime, timedelta
-from typing import List, Tuple
 
 import psutil
 from circup import find_device
 from typer import Exit
-from typing_extensions import TypeAlias
 
-from circlink import LINKS_DIRECTORY
+from circlink.cli import workspace
 from circlink.ledger import iter_ledger_entries, remove_from_ledger
 from circlink.link import CircuitPythonLink, LedgerEntry
-
-# Type aliases
-_TableRowEntry: TypeAlias = Tuple[
-    int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
-]
 
 
 # pylint: disable=too-many-locals,too-many-branches
@@ -220,69 +212,6 @@ def clear_backend(
         if entry.link_id == link_id:
             remove_from_ledger(entry, expect_entry=True, use_lock=False)
 
+    workspace.set_cws_name("")
+
     return True
-
-
-def get_links_header() -> Tuple[str, ...]:
-    """Get the header row for the links list."""
-    return (
-        "ID",
-        "Name",
-        "Running?",
-        "Read Path",
-        "Write Path",
-        "Recursive?",
-        "Process ID",
-        "Base Directory",
-    )
-
-
-def get_links_list(
-    pattern: str, *, abs_paths: bool = False, name: str = ""
-) -> List[_TableRowEntry]:
-    """Get the information about links."""
-    # Get the paths of all the exiting links
-    link_paths = pathlib.Path(LINKS_DIRECTORY).glob(pattern)
-
-    # Populate the list of links
-    link_infos = []
-    for link_path in link_paths:
-
-        # Load link and start getting info
-        link = CircuitPythonLink.load_link_by_filepath(str(link_path))
-        link_id = link.link_id
-        link_name = link.name
-        link_running = not link.stopped
-
-        # Attempt to use relative paths if possible
-        if not abs_paths:
-            try:
-                link_read = link.read_path.resolve().relative_to(os.getcwd())
-            except ValueError:
-                abs_paths = True
-        if abs_paths:
-            link_read = link.read_path.resolve()
-
-        # Get remaining link info
-        link_write = link.write_path.resolve()
-        link_recursive = link.recursive
-        link_proc = link.process_id
-        link_base = link.base_dir
-
-        # If not specific named link is requested, append it
-        if not name or link_name == name:
-            link_infos.append(
-                (
-                    link_id,
-                    link_name,
-                    link_running,
-                    link_read,
-                    link_write,
-                    link_recursive,
-                    link_proc,
-                    link_base,
-                )
-            )
-
-    # Return a sorted list of links
-    return sorted(link_infos, key=lambda x: x[0])

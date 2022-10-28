@@ -22,16 +22,10 @@ from circlink import (
     ensure_app_folder_setup,
     get_settings,
 )
-from circlink.backend import (
-    clear_backend,
-    get_links_header,
-    get_links_list,
-    start_backend,
-    stop_backend,
-)
+from circlink.backend import clear_backend, start_backend, stop_backend
 from circlink.cli import config, workspace
 from circlink.ledger import iter_ledger_entries
-from circlink.link import CircuitPythonLink
+from circlink.link import CircuitPythonLink, get_links_header, get_links_list
 
 # Prevent running on non-POSIX systems that don't have os.fork()
 if os.name != "posix":
@@ -90,6 +84,7 @@ def start(
         wipe_dest=wipe_dest,
         skip_presave=skip_presave,
     )
+    workspace.set_cws_name("")
 
 
 @app.command()
@@ -259,7 +254,7 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
                 recursive=link[5],
                 path=True,
             )
-            clear(link[0])
+            clear_backend(link[0])
 
 
 @app.command()
