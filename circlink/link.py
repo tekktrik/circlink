@@ -13,9 +13,10 @@ import os
 import pathlib
 import shutil
 import time
-from typing import Dict, List, Tuple, TypeAlias, Union
+from typing import Dict, List, Tuple, Union
 
 from typer import Exit
+from typing_extensions import TypeAlias
 
 from circlink import LINKS_DIRECTORY
 from circlink.ledger import LedgerEntry, append_to_ledger, remove_from_ledger
