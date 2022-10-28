@@ -142,7 +142,7 @@ def save(
         help="Whether to overwrite an existing workspace with the same name",
     ),
 ) -> None:
-    """Save a workspace."""
+    """Save the current link state as a workspace."""
     if not get_links_list("*"):
         print("No links are in the history, nothing to save")
         raise Exit(1)
