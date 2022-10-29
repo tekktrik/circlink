@@ -1,0 +1,3 @@
+Setting,Description,Type,Example
+display.info.process-id,Whether to display the process ID in relevant tables,bool,true
+display.table.format,The format to use for the table (may be a `format for tabulate <https://github.com/astanin/python-tabulate#table-format>`_),string,grid

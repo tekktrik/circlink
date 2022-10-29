@@ -137,3 +137,6 @@ dmypy.json
 
 # Project specific filtic_es
 links/
+
+# LibreOffice specific files
+.~lock.*
