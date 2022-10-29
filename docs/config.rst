@@ -50,3 +50,10 @@ natively as well:
 .. code-block:: shell
 
     circlink config --filepath
+
+Available Settings
+------------------
+
+.. csv-table:: Settings List
+    :file: configlist.csv
+    :header-rows: 1
