@@ -12,14 +12,21 @@ import os
 import signal
 import time
 from datetime import datetime, timedelta
+from typing import Iterable, List
 
 import psutil
 from circup import find_device
+from tabulate import tabulate
 from typer import Exit
 
-from circlink.cli import workspace
+from circlink import CURRENT_WORKSPACE_FILE, LINKS_DIRECTORY, get_settings
 from circlink.ledger import iter_ledger_entries, remove_from_ledger
-from circlink.link import CircuitPythonLink, LedgerEntry
+from circlink.link import (
+    CircuitPythonLink,
+    LedgerEntry,
+    get_links_header,
+    get_links_list,
+)
 
 
 # pylint: disable=too-many-locals,too-many-branches
@@ -212,6 +219,82 @@ def clear_backend(
         if entry.link_id == link_id:
             remove_from_ledger(entry, expect_entry=True, use_lock=False)
 
-    workspace.set_cws_name("")
+    set_cws_name("")
 
     return True
+
+
+def retrieve_links_info(
+    pattern: str = "*",
+    *,
+    abs_paths: bool = False,
+    folder: str = LINKS_DIRECTORY,
+    exclude: Iterable[str] = ("Base Directory",),
+) -> List[tuple]:
+    """Retrieve information about a collection of links."""
+    # Discard the link base directory for printing purposes
+    show_list = list(get_links_header())
+    link_infos = list(get_links_list(pattern, abs_paths=abs_paths, folder=folder))
+
+    # Remove unwanted columns
+    new_link_infos = []
+    for entry in link_infos:
+        new_entry = ()
+        for exculde_index, exclude_col in enumerate(show_list):
+            if exclude_col not in exclude:
+                new_entry: tuple = new_entry + (entry[exculde_index],)
+        new_link_infos.append(new_entry)
+
+    return new_link_infos
+
+
+def view_backend(
+    pattern: str = "*",
+    *,
+    abs_paths: bool = False,
+    folder: str = LINKS_DIRECTORY,
+    exclude: Iterable[str] = ("Base Directory",),
+) -> None:
+    """View a collection of links (backend)."""
+    show_list = list(get_links_header())
+    for exclude_header in exclude:
+        show_list.remove(exclude_header)
+    show_list = tuple(show_list)
+    if (
+        not get_settings()["display"]["info"]["process-id"]
+        and "Process ID" not in exclude
+    ):
+        exclude = exclude + ("Process ID",)
+        show_list = list(show_list)
+        show_list.remove("Process ID")
+        show_list = tuple(show_list)
+
+    # Discard the link base directory for printing purposes
+    link_infos = retrieve_links_info(
+        pattern, abs_paths=abs_paths, folder=folder, exclude=exclude
+    )
+
+    # Print the table with the format based on config settings
+    if link_infos:
+        print(
+            tabulate(
+                link_infos,
+                headers=show_list,
+                tablefmt=get_settings()["display"]["table"]["format"],
+            )
+        )
+
+    return link_infos
+
+
+def get_cws_name() -> str:
+    """Get the current workspace name."""
+    with open(CURRENT_WORKSPACE_FILE, encoding="utf-8") as cwsfile:
+        name = cwsfile.read()
+    return None if not name else name
+
+
+def set_cws_name(name: str) -> None:
+    """Set the current workspace name."""
+    with open(CURRENT_WORKSPACE_FILE, mode="w", encoding="utf-8") as cwsfile:
+        cwsfile.write(name)

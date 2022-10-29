@@ -16,11 +16,8 @@ from typing import Dict, Optional
 
 from typer import Argument, Exit, Option, Typer
 
-from circlink import (
-    CURRENT_WORKSPACE_FILE,
-    LINKS_DIRECTORY,
-    WORKSPACE_LIST_DIRECTORY,
-)
+from circlink import LINKS_DIRECTORY, WORKSPACE_LIST_DIRECTORY
+from circlink.backend import get_cws_name, set_cws_name, view_backend
 from circlink.link import CircuitPythonLink, get_links_list
 
 workspace_app = Typer(
@@ -28,19 +25,6 @@ workspace_app = Typer(
     no_args_is_help=True,
     help="Save and load workspace settings.",
 )
-
-
-def get_cws_name() -> str:
-    """Get the current workspace name."""
-    with open(CURRENT_WORKSPACE_FILE, encoding="utf-8") as cwsfile:
-        name = cwsfile.read()
-    return None if not name else name
-
-
-def set_cws_name(name: str) -> None:
-    """Set the current workspace name."""
-    with open(CURRENT_WORKSPACE_FILE, mode="w", encoding="utf-8") as cwsfile:
-        cwsfile.write(name)
 
 
 def get_workspaces() -> Dict[str, pathlib.Path]:
@@ -192,6 +176,16 @@ def load(name: str = Argument(..., help="Name of the workspace to load")) -> Non
     set_cws_name(name)
 
     print(f"Loaded workspace '{name}'")
+
+
+@workspace_app.command()
+def view(name: str = Argument(..., help="The name of the workspace to view")):
+    """View details about a workspace."""
+    view_backend(
+        "*",
+        folder=_get_ws_path(name),
+        exclude=("Base Directory", "Running?", "Process ID"),
+    )
 
 
 @workspace_app.command()
