@@ -13,7 +13,6 @@ import json
 import os
 import pathlib
 import shutil
-import time
 from typing import Dict, List, Optional, Tuple, Union
 
 from typer import Exit
@@ -243,11 +242,10 @@ class CircuitPythonLink:
 
         # Load the link and repeatedly load while not flagged to stop
         temp_link = self.load_link_by_num(self._link_id)
-        while not temp_link.end_flag:
+        while not temp_link or not temp_link.end_flag:
 
             # Load the link
             temp_link = self.load_link_by_num(self._link_id)
-            time.sleep(0.1)
 
             # Detect new files
             read_files = self.get_files_monitored()
