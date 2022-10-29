@@ -359,11 +359,15 @@ def get_links_header() -> Tuple[str, ...]:
 
 
 def get_links_list(
-    pattern: str, *, abs_paths: bool = False, name: str = ""
+    pattern: str,
+    *,
+    abs_paths: bool = False,
+    name: str = "",
+    folder: str = LINKS_DIRECTORY,
 ) -> List[_TableRowEntry]:
     """Get the information about links."""
     # Get the paths of all the exiting links
-    link_paths = pathlib.Path(LINKS_DIRECTORY).glob(pattern)
+    link_paths = pathlib.Path(folder).glob(pattern)
 
     # Populate the list of links
     link_infos = []
@@ -371,8 +375,6 @@ def get_links_list(
 
         # Load link and start getting info
         link = CircuitPythonLink.load_link_by_filepath(str(link_path))
-        link_id = link.link_id
-        link_name = link.name
         link_running = not link.stopped
 
         # Attempt to use relative paths if possible
@@ -386,22 +388,19 @@ def get_links_list(
 
         # Get remaining link info
         link_write = link.write_path.resolve()
-        link_recursive = link.recursive
-        link_proc = link.process_id
-        link_base = link.base_dir
 
         # If not specific named link is requested, append it
-        if not name or link_name == name:
+        if not name or link.name == name:
             link_infos.append(
                 (
-                    link_id,
-                    link_name,
+                    link.link_id,
+                    link.name,
                     link_running,
                     link_read,
                     link_write,
-                    link_recursive,
-                    link_proc,
-                    link_base,
+                    link.recursive,
+                    link.process_id,
+                    link.base_dir,
                 )
             )
 

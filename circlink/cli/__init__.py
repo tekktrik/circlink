@@ -22,7 +22,12 @@ from circlink import (
     ensure_app_folder_setup,
     get_settings,
 )
-from circlink.backend import clear_backend, start_backend, stop_backend
+from circlink.backend import (
+    clear_backend,
+    start_backend,
+    stop_backend,
+    view_backend,
+)
 from circlink.cli import config, workspace
 from circlink.ledger import iter_ledger_entries
 from circlink.link import CircuitPythonLink, get_links_header, get_links_list
@@ -189,7 +194,7 @@ def view(
             print('Please use a valid link ID, "last", or "all" (default)')
 
     # Discard the link base directory for printing purposes
-    link_infos = [x[:-1] for x in get_links_list(pattern, abs_paths=abs_paths)]
+    link_infos = view_backend(pattern, abs_paths=abs_paths)
 
     # Handle if no links available
     if not link_infos:
@@ -198,22 +203,6 @@ def view(
             raise Exit()
         print("This link ID is not in the history")
         raise Exit(1)
-
-    # Prepare process ID depending on config settings
-    show_list = get_links_header()
-    if not get_settings()["display"]["info"]["process-id"]:
-        show_list = list(show_list)
-        show_list.remove("Process ID")
-        link_infos = [entry[:-1] for entry in link_infos]
-
-    # Print the table with the format based on config settings
-    print(
-        tabulate(
-            link_infos,
-            headers=show_list,
-            tablefmt=get_settings()["display"]["table"]["format"],
-        )
-    )
 
 
 @app.command()
