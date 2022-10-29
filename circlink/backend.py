@@ -256,7 +256,10 @@ def view_backend(
     exclude: Iterable[str] = ("Base Directory",),
 ) -> None:
     """View a collection of links (backend)."""
-    show_list = get_links_header()
+    show_list = list(get_links_header())
+    for exclude_header in exclude:
+        show_list.remove(exclude_header)
+    show_list = tuple(show_list)
     if (
         not get_settings()["display"]["info"]["process-id"]
         and "Process ID" not in exclude

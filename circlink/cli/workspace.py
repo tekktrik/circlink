@@ -17,7 +17,7 @@ from typing import Dict, Optional
 from typer import Argument, Exit, Option, Typer
 
 from circlink import LINKS_DIRECTORY, WORKSPACE_LIST_DIRECTORY
-from circlink.backend import get_cws_name, set_cws_name
+from circlink.backend import get_cws_name, set_cws_name, view_backend
 from circlink.link import CircuitPythonLink, get_links_list
 
 workspace_app = Typer(
@@ -176,6 +176,16 @@ def load(name: str = Argument(..., help="Name of the workspace to load")) -> Non
     set_cws_name(name)
 
     print(f"Loaded workspace '{name}'")
+
+
+@workspace_app.command()
+def view(name: str = Argument(..., help="The name of the workspace to view")):
+    """View details about a workspace."""
+    view_backend(
+        "*",
+        folder=_get_ws_path(name),
+        exclude=("Base Directory", "Running?", "Process ID"),
+    )
 
 
 @workspace_app.command()
