@@ -8,12 +8,12 @@ Information and methods pertaining to links and link files.
 Author(s): Alec Delaney (Tekktrik)
 """
 
+import fcntl
 import json
 import os
 import pathlib
 import shutil
-import time
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from typer import Exit
 from typing_extensions import TypeAlias
@@ -144,16 +144,21 @@ class CircuitPythonLink:
 
         # Save the object as a JSON file
         with open(save_filepath, mode="w", encoding="utf-8") as linkfile:
+            fcntl.lockf(linkfile, fcntl.LOCK_EX)
             json.dump(link_obj, linkfile, indent=4)
+            fcntl.lockf(linkfile, fcntl.LOCK_UN)
 
         # Return the save filepath
         return pathlib.Path(save_filepath)
 
     @classmethod
-    def load_link_by_filepath(cls, link_filepath: str) -> "CircuitPythonLink":
+    def load_link_by_filepath(cls, link_filepath: str) -> Optional["CircuitPythonLink"]:
         """Create a CircuitPythonLink from a JSON file, by filepath."""
         with open(link_filepath, encoding="utf-8") as linkfile:
-            link_obj = json.load(linkfile)
+            link_contents = linkfile.read()
+            if not link_contents:
+                return None
+            link_obj = json.loads(link_contents)
 
         link = cls(
             name=link_obj["name"],
@@ -237,11 +242,10 @@ class CircuitPythonLink:
 
         # Load the link and repeatedly load while not flagged to stop
         temp_link = self.load_link_by_num(self._link_id)
-        while not temp_link.end_flag:
+        while not temp_link or not temp_link.end_flag:
 
             # Load the link
             temp_link = self.load_link_by_num(self._link_id)
-            time.sleep(0.1)
 
             # Detect new files
             read_files = self.get_files_monitored()

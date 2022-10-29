@@ -10,7 +10,6 @@ Author(s): Alec Delaney (Tekktrik)
 
 import os
 import signal
-import time
 from datetime import datetime, timedelta
 from typing import Iterable, List
 
@@ -101,9 +100,8 @@ def start_backend(
         # Attempt to wait for spawned process to be confirmed
         start_time = datetime.now()
         error_time = start_time + timedelta(seconds=5)
-        while not link.confirmed:
+        while not link or not link.confirmed:
             link = CircuitPythonLink.load_link_by_num(link_id)
-            time.sleep(0.5)  # Slight delay
             if datetime.now() >= error_time:
                 try:
                     os.kill(pid, signal.SIGTERM)
@@ -116,9 +114,8 @@ def start_backend(
     else:  # Spawned process, PID is 0
 
         # Wait for the process ID to be avaiable
-        while not link.process_id:
+        while not link or not link.process_id:
             link = CircuitPythonLink.load_link_by_num(link_id)
-            time.sleep(0.3)
 
         # Mark the link is confirmed and save it
         link.confirmed = True
@@ -177,9 +174,8 @@ def stop_backend(link_id: int, *, hard_fault: bool = True) -> bool:
     # Wait for confirmation that the link has stopped
     start_time = datetime.now()
     error_time = start_time + timedelta(seconds=5)
-    while not link.stopped:
+    while not link or not link.stopped:
         link = CircuitPythonLink.load_link_by_num(link_id)
-        time.sleep(0.1)  # Slight delay
         if datetime.now() >= error_time:
             print(f"Link #{link.link_id} could not be stopped!")
             if hard_fault:
