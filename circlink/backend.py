@@ -17,7 +17,7 @@ import psutil
 from circup import find_device
 from typer import Exit
 
-from circlink.cli import workspace
+from circlink import CURRENT_WORKSPACE_FILE
 from circlink.ledger import iter_ledger_entries, remove_from_ledger
 from circlink.link import CircuitPythonLink, LedgerEntry
 
@@ -212,6 +212,19 @@ def clear_backend(
         if entry.link_id == link_id:
             remove_from_ledger(entry, expect_entry=True, use_lock=False)
 
-    workspace.set_cws_name("")
+    set_cws_name("")
 
     return True
+
+
+def get_cws_name() -> str:
+    """Get the current workspace name."""
+    with open(CURRENT_WORKSPACE_FILE, encoding="utf-8") as cwsfile:
+        name = cwsfile.read()
+    return None if not name else name
+
+
+def set_cws_name(name: str) -> None:
+    """Set the current workspace name."""
+    with open(CURRENT_WORKSPACE_FILE, mode="w", encoding="utf-8") as cwsfile:
+        cwsfile.write(name)
