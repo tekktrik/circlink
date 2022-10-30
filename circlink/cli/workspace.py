@@ -131,7 +131,8 @@ def save(
         print("No links are in the history, nothing to save")
         raise Exit(1)
 
-    _ = not overwrite and _ensure_new_workspace(name)
+    if not overwrite:
+        _ensure_new_workspace(name)
 
     _remove_workspace(name)
 
