@@ -18,8 +18,7 @@ from typer import Argument, Exit, Option, Typer
 
 import circlink
 import circlink.backend
-import circlink.cli.config
-import circlink.cli.workspace
+from circlink.cli import config, workspace
 import circlink.ledger
 import circlink.link
 
@@ -34,8 +33,8 @@ app = Typer(
     no_args_is_help=True,
     help="Autosave local files to your CircuitPython board",
 )
-app.add_typer(circlink.cli.config.config_app, name="config")
-app.add_typer(circlink.cli.workspace.workspace_app, name="workspace")
+app.add_typer(config.config_app, name="config")
+app.add_typer(workspace.workspace_app, name="workspace")
 
 
 @app.command()
