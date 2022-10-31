@@ -18,9 +18,9 @@ from typer import Argument, Exit, Option, Typer
 
 import circlink
 import circlink.backend
-from circlink.cli import config, workspace
 import circlink.ledger
 import circlink.link
+from circlink.cli import config, workspace
 
 # Prevent running on non-POSIX systems that don't have os.fork()
 if os.name != "posix":
