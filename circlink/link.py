@@ -18,8 +18,8 @@ from typing import Dict, List, Optional, Tuple, Union
 from typer import Exit
 from typing_extensions import TypeAlias
 
-from circlink import LINKS_DIRECTORY
-from circlink.ledger import LedgerEntry, append_to_ledger, remove_from_ledger
+import circlink
+import circlink.ledger
 
 # Type aliases
 _TableRowEntry: TypeAlias = Tuple[
@@ -69,7 +69,7 @@ class CircuitPythonLink:
     @staticmethod
     def get_next_link_id() -> int:
         """Get the next link ID."""
-        link_gen = pathlib.Path(LINKS_DIRECTORY).glob("link*.json")
+        link_gen = pathlib.Path(circlink.LINKS_DIRECTORY).glob("link*.json")
         link_nums = [int(link_file.name[4:-5]) for link_file in link_gen]
         if not link_nums:
             return 1
@@ -120,7 +120,9 @@ class CircuitPythonLink:
         """Whether the link is marked has stopped."""
         return self._stopped
 
-    def save_link(self, *, save_directory: str = LINKS_DIRECTORY) -> pathlib.Path:
+    def save_link(
+        self, *, save_directory: str = circlink.LINKS_DIRECTORY
+    ) -> pathlib.Path:
         """Save the link object as a file in the specified folder."""
         # Create the representative object
         link_obj = {
@@ -185,7 +187,9 @@ class CircuitPythonLink:
         return cls.load_link_by_filepath(link_filepath)
 
     @staticmethod
-    def link_id_to_filename(num: int, *, directory: str = LINKS_DIRECTORY) -> str:
+    def link_id_to_filename(
+        num: int, *, directory: str = circlink.LINKS_DIRECTORY
+    ) -> str:
         """Create a link filename from a link ID."""
         return os.path.join(directory, "link" + str(num) + ".json")
 
@@ -229,8 +233,10 @@ class CircuitPythonLink:
             ledger_file_path = str(
                 self.get_write_filepath(self.write_path, read_file, self.base_dir)
             )
-            if append_to_ledger(
-                LedgerEntry(ledger_file_path, self.link_id, self.process_id),
+            if circlink.ledger.append_to_ledger(
+                circlink.ledger.LedgerEntry(
+                    ledger_file_path, self.link_id, self.process_id
+                ),
                 expect_entry=False,
             ):
                 update_map[read_file] = read_file.stat().st_mtime
@@ -255,8 +261,10 @@ class CircuitPythonLink:
                     self.get_write_filepath(self.write_path, file, self.base_dir)
                 )
                 if (
-                    append_to_ledger(
-                        LedgerEntry(ledger_file_path, self.link_id, self.process_id),
+                    circlink.ledger.append_to_ledger(
+                        circlink.ledger.LedgerEntry(
+                            ledger_file_path, self.link_id, self.process_id
+                        ),
                         expect_entry=False,
                     )
                     and file not in update_map
@@ -289,10 +297,10 @@ class CircuitPythonLink:
                 ledger_file_path = str(
                     self.get_write_filepath(self.write_path, file, self.base_dir)
                 )
-                ledger_entry = LedgerEntry(
+                ledger_entry = circlink.ledger.LedgerEntry(
                     ledger_file_path, self.link_id, self.process_id
                 )
-                remove_from_ledger(ledger_entry, expect_entry=True)
+                circlink.ledger.remove_from_ledger(ledger_entry, expect_entry=True)
                 try:
                     del update_map[file]
                 except KeyError:
@@ -301,10 +309,10 @@ class CircuitPythonLink:
 
         # Remove files from ledger
         for file in self.get_files_monitored():
-            ledger_entry = LedgerEntry(
+            ledger_entry = circlink.ledger.LedgerEntry(
                 str(file.resolve()), self.link_id, self.process_id
             )
-            remove_from_ledger(ledger_entry, expect_entry=True)
+            circlink.ledger.remove_from_ledger(ledger_entry, expect_entry=True)
 
         # Mark link as end flag set and stopped, then save
         self.end_flag = True
@@ -367,7 +375,7 @@ def get_links_list(
     *,
     abs_paths: bool = False,
     name: str = "",
-    folder: str = LINKS_DIRECTORY,
+    folder: str = circlink.LINKS_DIRECTORY,
 ) -> List[_TableRowEntry]:
     """Get the information about links."""
     # Get the paths of all the exiting links

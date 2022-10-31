@@ -14,7 +14,7 @@ import os
 import yaml
 from typer import Argument, Exit, Option, Typer
 
-from circlink import SETTINGS_FILE, get_settings, reset_config_file
+import circlink
 
 config_app = Typer(
     add_completion=False,
@@ -34,10 +34,10 @@ def callback(
 ) -> None:
     """Run the callback for the config subcommand."""
     if filepath:
-        print(f"Settings file: {os.path.abspath(SETTINGS_FILE)}")
+        print(f"Settings file: {os.path.abspath(circlink.SETTINGS_FILE)}")
         raise Exit()
     if reset:
-        reset_config_file()
+        circlink.reset_config_file()
 
 
 @config_app.command()
@@ -46,7 +46,7 @@ def view(
 ) -> None:
     """View a config setting for circlink."""
     # Get the settings, show all settings if no specific on is specified
-    setting = get_settings()
+    setting = circlink.get_settings()
     if config_path == "all":
         print(json.dumps(setting, indent=4))
         raise Exit()
@@ -72,7 +72,7 @@ def edit(
 ) -> None:
     """Edit a config setting for circlink."""
     # Get the settings, use another reference to parse
-    orig_setting = get_settings()
+    orig_setting = circlink.get_settings()
     setting = orig_setting
     config_args = config_path.split(".")
 
@@ -106,5 +106,5 @@ def edit(
         raise Exit(1) from err
 
     # Write the settings back to the file
-    with open(SETTINGS_FILE, mode="w", encoding="utf-8") as yamlfile:
+    with open(circlink.SETTINGS_FILE, mode="w", encoding="utf-8") as yamlfile:
         yaml.safe_dump(orig_setting, yamlfile)
