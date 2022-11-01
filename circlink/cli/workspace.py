@@ -186,11 +186,14 @@ def load(name: str = Argument(..., help="Name of the workspace to load")) -> Non
 @workspace_app.command()
 def view(name: str = Argument(..., help="The name of the workspace to view")):
     """View details about a workspace."""
-    circlink.backend.view_backend(
+    results = circlink.backend.view_backend(
         "*",
         folder=_get_ws_path(name),
         exclude=("Base Directory", "Running?", "Process ID"),
     )
+    if not results:
+        print(f"Workspace '{name}' does not exist!")
+        raise Exit(1)
 
 
 @workspace_app.command()
