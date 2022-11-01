@@ -14,7 +14,7 @@ import functools
 from collections import namedtuple
 from typing import Iterator, Literal, Optional
 
-from circlink import LEDGER_FILE
+import circlink
 
 # Namedtuple for ledger entries
 LedgerEntry = namedtuple("LedgerEntry", ("filename", "link_id", "process_id"))
@@ -39,7 +39,7 @@ def with_ledger(mode: str = "a"):
         ) -> bool:
             """Edit the ledger."""
             # Open the ledger file
-            with open(LEDGER_FILE, mode=mode, encoding="utf-8") as filedesc:
+            with open(circlink.LEDGER_FILE, mode=mode, encoding="utf-8") as filedesc:
 
                 # Use a file lock if requested
                 if use_lock:
@@ -94,7 +94,7 @@ def remove_from_ledger(entry: LedgerEntry, **args) -> Literal[True]:
 
 def iter_ledger_entries(use_lock: bool = True) -> Iterator[LedgerEntry]:
     """Iterate through ledger entries."""
-    with open(LEDGER_FILE, mode="r+", encoding="utf-8") as csvfile:
+    with open(circlink.LEDGER_FILE, mode="r+", encoding="utf-8") as csvfile:
         if use_lock:
             fcntl.lockf(csvfile, fcntl.LOCK_EX)
         csvreader = csv.reader(csvfile)

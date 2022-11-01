@@ -12,25 +12,15 @@ import os
 import shutil
 import sys
 
-from circup import find_device
-from tabulate import tabulate
+import circup
+import tabulate
 from typer import Argument, Exit, Option, Typer
 
-from circlink import (
-    APP_DIRECTORY,
-    __version__,
-    ensure_app_folder_setup,
-    get_settings,
-)
-from circlink.backend import (
-    clear_backend,
-    start_backend,
-    stop_backend,
-    view_backend,
-)
+import circlink
+import circlink.backend
+import circlink.ledger
+import circlink.link
 from circlink.cli import config, workspace
-from circlink.ledger import iter_ledger_entries
-from circlink.link import CircuitPythonLink, get_links_header, get_links_list
 
 # Prevent running on non-POSIX systems that don't have os.fork()
 if os.name != "posix":
@@ -79,7 +69,7 @@ def start(
     ),
 ) -> None:
     """Start a CircuitPython link."""
-    start_backend(
+    circlink.backend.start_backend(
         read_path,
         write_path,
         os.getcwd(),
@@ -89,7 +79,7 @@ def start(
         wipe_dest=wipe_dest,
         skip_presave=skip_presave,
     )
-    workspace.set_cws_name("")
+    circlink.backend.set_cws_name("")
 
 
 @app.command()
@@ -105,16 +95,16 @@ def stop(
     """Stop a CircuitPython link."""
     # If stopping all links, stop links using the "last" option until done
     if link_id == "all":
-        link_entries = get_links_list("*")
+        link_entries = circlink.link.get_links_list("*")
         for link_entry in link_entries:
-            stop_backend(link_entry[0], hard_fault=False)
+            circlink.backend.stop_backend(link_entry[0], hard_fault=False)
             if clear_flag:
-                clear_backend(link_entry[0], hard_fault=False)
+                circlink.backend.clear_backend(link_entry[0], hard_fault=False)
         raise Exit()
 
     # If stopping the last link, calculate its link ID
     if link_id == "last":
-        link_id = str(CircuitPythonLink.get_next_link_id() - 1)
+        link_id = str(circlink.link.CircuitPythonLink.get_next_link_id() - 1)
         if link_id == "0":
             print("There are no links in the history")
             raise Exit(1)
@@ -127,9 +117,9 @@ def stop(
         raise Exit(1) from err
 
     # Stop the link, clear as well if requested
-    stop_backend(link_id)
+    circlink.backend.stop_backend(link_id)
     if clear_flag:
-        clear_backend(link_id)
+        circlink.backend.clear_backend(link_id)
 
 
 @app.command()
@@ -143,14 +133,14 @@ def clear(
     """Clear the link from the history."""
     # If clearing all links, repetitively clear the last link
     if link_id == "all":
-        link_entries = get_links_list("*")
+        link_entries = circlink.link.get_links_list("*")
         for link_entry in link_entries:
-            clear_backend(link_entry[0], force=force, hard_fault=False)
+            circlink.backend.clear_backend(link_entry[0], force=force, hard_fault=False)
         raise Exit()
 
     # If clearing the last link link, calculate its link ID
     if link_id == "last":
-        link_id = str(CircuitPythonLink.get_next_link_id() - 1)
+        link_id = str(circlink.link.CircuitPythonLink.get_next_link_id() - 1)
         if link_id == "0":
             return
 
@@ -162,7 +152,7 @@ def clear(
         raise Exit(1) from err
 
     # Clear the link
-    clear_backend(link_id, force=force)
+    circlink.backend.clear_backend(link_id, force=force)
 
 
 @app.command()
@@ -182,7 +172,7 @@ def view(
         pattern = "*"
     elif link_id == "last":
         last_requested_flag = True
-        link_id = str(CircuitPythonLink.get_next_link_id() - 1)
+        link_id = str(circlink.link.CircuitPythonLink.get_next_link_id() - 1)
         pattern = "link" + link_id + ".json"
         if link_id == "0":
             pattern = "*"
@@ -194,7 +184,7 @@ def view(
             print('Please use a valid link ID, "last", or "all" (default)')
 
     # Discard the link base directory for printing purposes
-    link_infos = view_backend(pattern, abs_paths=abs_paths)
+    link_infos = circlink.backend.view_backend(pattern, abs_paths=abs_paths)
 
     # Handle if no links available
     if not link_infos:
@@ -212,7 +202,7 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
     if link_id == "all":
         pattern = "*"
     elif link_id == "last":
-        link_id = str(CircuitPythonLink.get_next_link_id() - 1)
+        link_id = str(circlink.link.CircuitPythonLink.get_next_link_id() - 1)
         pattern = "link" + link_id + ".json"
         if link_id == "0":
             pattern = "*"
@@ -225,7 +215,7 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
             raise Exit(1) from err
 
     # Get the list of links in history if possible
-    link_list = get_links_list(pattern)
+    link_list = circlink.link.get_links_list(pattern)
     if not link_list:
         print("There are no links in the history to restart")
         raise Exit(1)
@@ -235,7 +225,7 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
         if link[2]:
             print(f"Link #{link[0]} is active, not restarting this link.")
         else:
-            start_backend(
+            circlink.backend.start_backend(
                 str(link[3]),
                 str(link[4]),
                 link[-1],
@@ -243,13 +233,13 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
                 recursive=link[5],
                 path=True,
             )
-            clear_backend(link[0])
+            circlink.backend.clear_backend(link[0])
 
 
 @app.command()
 def detect() -> None:
     """Attempt to detect a CircuitPython board."""
-    device = find_device()
+    device = circup.find_device()
     if device:
         print("CircuitPython device detected:", device)
     else:
@@ -265,7 +255,7 @@ def about_cb() -> None:
 
 def version_cb() -> None:
     """Display the current version of circlink."""
-    print(__version__)
+    print(circlink.__version__)
     raise Exit()
 
 
@@ -280,7 +270,7 @@ def callback(
     ),
 ) -> None:
     """Display the current version of circlink."""
-    ensure_app_folder_setup()
+    circlink.ensure_app_folder_setup()
 
     if version:
         version_cb()
@@ -296,7 +286,7 @@ def reset_cb() -> None:
 
     Useful if you upgrade circlink and there are breaking changes.
     """
-    shutil.rmtree(APP_DIRECTORY)
+    shutil.rmtree(circlink.APP_DIRECTORY)
     print("Removed circlink app directory, settngs and history deleted!")
     print("These will be created on next use of circlink.")
     print("Please check the integrity of any files handled by circlink.")
@@ -307,23 +297,23 @@ def reset_cb() -> None:
 def ledger() -> None:
     """View the ledger of files controlled by links."""
     # Get the list of ledger entries if possible
-    ledger_entries = list(iter_ledger_entries())
+    ledger_entries = list(circlink.ledger.iter_ledger_entries())
     if not ledger_entries:
         print("No files being tracked by circlink")
         raise Exit()
 
     # Display the process ID of links depending on settings
     table_headers = ("Write Path", "Link")
-    if get_settings()["display"]["info"]["process-id"]:
+    if circlink.get_settings()["display"]["info"]["process-id"]:
         table_headers = table_headers + ("Process ID",)
     else:
         ledger_entries = [entry[:-1] for entry in ledger_entries]
 
     # Print the table with the format specified in config settings
     print(
-        tabulate(
+        tabulate.tabulate(
             ledger_entries,
             headers=table_headers,
-            tablefmt=get_settings()["display"]["table"]["format"],
+            tablefmt=circlink.get_settings()["display"]["table"]["format"],
         )
     )

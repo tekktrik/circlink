@@ -8,24 +8,19 @@ Backend operations for circlink.
 Author(s): Alec Delaney (Tekktrik)
 """
 
+import datetime
 import os
 import signal
-from datetime import datetime, timedelta
 from typing import Iterable, List
 
+import circup
 import psutil
-from circup import find_device
-from tabulate import tabulate
+import tabulate
 from typer import Exit
 
-from circlink import CURRENT_WORKSPACE_FILE, LINKS_DIRECTORY, get_settings
-from circlink.ledger import iter_ledger_entries, remove_from_ledger
-from circlink.link import (
-    CircuitPythonLink,
-    LedgerEntry,
-    get_links_header,
-    get_links_list,
-)
+import circlink
+import circlink.ledger
+import circlink.link
 
 
 # pylint: disable=too-many-locals,too-many-branches
@@ -48,7 +43,7 @@ def start_backend(
 
     # Attempt to find the CircuitPython board unless explicitly set otherwise
     if not path:
-        device_path = find_device()
+        device_path = circup.find_device()
         if not device_path:
             print("Cound not auto-detect board path!")
             raise Exit(1)
@@ -64,7 +59,7 @@ def start_backend(
     base_dir = os.getcwd() if not base_dir else base_dir
 
     # Create the link object
-    link = CircuitPythonLink(
+    link = circlink.link.CircuitPythonLink(
         read_path,
         write_path,
         base_dir,
@@ -98,11 +93,11 @@ def start_backend(
         link.save_link()
 
         # Attempt to wait for spawned process to be confirmed
-        start_time = datetime.now()
-        error_time = start_time + timedelta(seconds=5)
+        start_time = datetime.datetime.now()
+        error_time = start_time + datetime.timedelta(seconds=5)
         while not link or not link.confirmed:
-            link = CircuitPythonLink.load_link_by_num(link_id)
-            if datetime.now() >= error_time:
+            link = circlink.link.CircuitPythonLink.load_link_by_num(link_id)
+            if datetime.datetime.now() >= error_time:
                 try:
                     os.kill(pid, signal.SIGTERM)
                 except ProcessLookupError:
@@ -115,7 +110,7 @@ def start_backend(
 
         # Wait for the process ID to be avaiable
         while not link or not link.process_id:
-            link = CircuitPythonLink.load_link_by_num(link_id)
+            link = circlink.link.CircuitPythonLink.load_link_by_num(link_id)
 
         # Mark the link is confirmed and save it
         link.confirmed = True
@@ -126,10 +121,10 @@ def start_backend(
             link.begin_monitoring()
         except FileNotFoundError:
             for file in link.get_files_monitored():
-                ledger_entry = LedgerEntry(
+                ledger_entry = circlink.ledger.LedgerEntry(
                     str(file.resolve()), link.link_id, link.process_id
                 )
-                remove_from_ledger(ledger_entry)
+                circlink.ledger.remove_from_ledger(ledger_entry)
             Exit(1)
         raise Exit()
 
@@ -138,7 +133,7 @@ def stop_backend(link_id: int, *, hard_fault: bool = True) -> bool:
     """Stop a link (backend)."""
     # Attempt to get the link by ID
     try:
-        link = CircuitPythonLink.load_link_by_num(link_id)
+        link = circlink.link.CircuitPythonLink.load_link_by_num(link_id)
     except FileNotFoundError as err:
         print(f"Link #{link_id} does not exist!")
         raise Exit(1) from err
@@ -172,11 +167,11 @@ def stop_backend(link_id: int, *, hard_fault: bool = True) -> bool:
     link.save_link()
 
     # Wait for confirmation that the link has stopped
-    start_time = datetime.now()
-    error_time = start_time + timedelta(seconds=5)
+    start_time = datetime.datetime.now()
+    error_time = start_time + datetime.timedelta(seconds=5)
     while not link or not link.stopped:
-        link = CircuitPythonLink.load_link_by_num(link_id)
-        if datetime.now() >= error_time:
+        link = circlink.link.CircuitPythonLink.load_link_by_num(link_id)
+        if datetime.datetime.now() >= error_time:
             print(f"Link #{link.link_id} could not be stopped!")
             if hard_fault:
                 raise Exit(1)
@@ -193,7 +188,7 @@ def clear_backend(
     """Clear a link (backend)."""
     # Get the link object by link ID
     try:
-        link = CircuitPythonLink.load_link_by_num(link_id)
+        link = circlink.link.CircuitPythonLink.load_link_by_num(link_id)
     except FileNotFoundError as err:
         print(f"Link #{link_id} does not exist!")
         raise Exit(1) from err
@@ -211,9 +206,9 @@ def clear_backend(
     print(f"Removed link #{link_id} from history")
 
     # Remove file from ledger, just in case
-    for entry in iter_ledger_entries():
+    for entry in circlink.ledger.iter_ledger_entries():
         if entry.link_id == link_id:
-            remove_from_ledger(entry, expect_entry=True, use_lock=False)
+            circlink.ledger.remove_from_ledger(entry, expect_entry=True, use_lock=False)
 
     set_cws_name("")
 
@@ -224,13 +219,15 @@ def retrieve_links_info(
     pattern: str = "*",
     *,
     abs_paths: bool = False,
-    folder: str = LINKS_DIRECTORY,
+    folder: str = circlink.LINKS_DIRECTORY,
     exclude: Iterable[str] = ("Base Directory",),
 ) -> List[tuple]:
     """Retrieve information about a collection of links."""
     # Discard the link base directory for printing purposes
-    show_list = list(get_links_header())
-    link_infos = list(get_links_list(pattern, abs_paths=abs_paths, folder=folder))
+    show_list = list(circlink.link.get_links_header())
+    link_infos = list(
+        circlink.link.get_links_list(pattern, abs_paths=abs_paths, folder=folder)
+    )
 
     # Remove unwanted columns
     new_link_infos = []
@@ -248,16 +245,16 @@ def view_backend(
     pattern: str = "*",
     *,
     abs_paths: bool = False,
-    folder: str = LINKS_DIRECTORY,
+    folder: str = circlink.LINKS_DIRECTORY,
     exclude: Iterable[str] = ("Base Directory",),
 ) -> None:
     """View a collection of links (backend)."""
-    show_list = list(get_links_header())
+    show_list = list(circlink.link.get_links_header())
     for exclude_header in exclude:
         show_list.remove(exclude_header)
     show_list = tuple(show_list)
     if (
-        not get_settings()["display"]["info"]["process-id"]
+        not circlink.get_settings()["display"]["info"]["process-id"]
         and "Process ID" not in exclude
     ):
         exclude = exclude + ("Process ID",)
@@ -273,10 +270,10 @@ def view_backend(
     # Print the table with the format based on config settings
     if link_infos:
         print(
-            tabulate(
+            tabulate.tabulate(
                 link_infos,
                 headers=show_list,
-                tablefmt=get_settings()["display"]["table"]["format"],
+                tablefmt=circlink.get_settings()["display"]["table"]["format"],
             )
         )
 
@@ -285,12 +282,12 @@ def view_backend(
 
 def get_cws_name() -> str:
     """Get the current workspace name."""
-    with open(CURRENT_WORKSPACE_FILE, encoding="utf-8") as cwsfile:
+    with open(circlink.CURRENT_WORKSPACE_FILE, encoding="utf-8") as cwsfile:
         name = cwsfile.read()
     return None if not name else name
 
 
 def set_cws_name(name: str) -> None:
     """Set the current workspace name."""
-    with open(CURRENT_WORKSPACE_FILE, mode="w", encoding="utf-8") as cwsfile:
+    with open(circlink.CURRENT_WORKSPACE_FILE, mode="w", encoding="utf-8") as cwsfile:
         cwsfile.write(name)
