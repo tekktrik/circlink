@@ -21,7 +21,7 @@ CircLink
    :target: https://github.com/tekktrik/circlink/blob/main/LICENSE
    :alt: MIT License
 
-.. image:: https://img.shields.io/maintenance/yes/2022
+.. image:: https://img.shields.io/badge/maintained-yes-green
    :target: https://github.com/tekktrik/circlink/issues
    :alt: Maintenaned
 
