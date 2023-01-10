@@ -5,7 +5,7 @@ CircLink
    :target: https://circlink.readthedocs.io/en/latest/
    :alt: Read the Docs (latest)
 
-.. image:: https://img.shields.io/github/workflow/status/tekktrik/circlink/Build%20CI/main
+.. image:: https://img.shields.io/github/actions/workflow/status/tekktrik/circlink/build.yml?branch=main
    :target:  https://github.com/tekktrik/circlink/actions
    :alt: Build CI status (main branch)
 
