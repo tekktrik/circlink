@@ -26,6 +26,7 @@ _TableRowEntry: TypeAlias = Tuple[
     int, str, bool, pathlib.Path, pathlib.Path, bool, int, str
 ]
 
+
 # pylint: disable=too-many-instance-attributes
 class CircuitPythonLink:
     """The link to the device."""
@@ -249,7 +250,6 @@ class CircuitPythonLink:
         # Load the link and repeatedly load while not flagged to stop
         temp_link = self.load_link_by_num(self._link_id)
         while not temp_link or not temp_link.end_flag:
-
             # Load the link
             temp_link = self.load_link_by_num(self._link_id)
 
@@ -279,7 +279,6 @@ class CircuitPythonLink:
 
             # Iterate through listed existing files
             for file, last_modtime in update_map.items():
-
                 # Detect deleted
                 if not file.exists():
                     marked_delete.append(file)
@@ -347,7 +346,6 @@ class CircuitPythonLink:
         read_file: pathlib.Path,
         base_dir: pathlib.Path,
     ):
-
         file_dest = CircuitPythonLink.get_write_filepath(
             write_path, read_file, base_dir
         )
@@ -384,7 +382,6 @@ def get_links_list(
     # Populate the list of links
     link_infos = []
     for link_path in link_paths:
-
         # Load link and start getting info
         link = CircuitPythonLink.load_link_by_filepath(str(link_path))
         link_running = not link.stopped

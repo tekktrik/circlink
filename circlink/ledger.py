@@ -40,7 +40,6 @@ def with_ledger(mode: str = "a"):
             """Edit the ledger."""
             # Open the ledger file
             with open(circlink.LEDGER_FILE, mode=mode, encoding="utf-8") as filedesc:
-
                 # Use a file lock if requested
                 if use_lock:
                     fcntl.lockf(filedesc, fcntl.LOCK_EX)

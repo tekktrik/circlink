@@ -87,7 +87,6 @@ def start_backend(
     pid = os.fork()  # pylint: disable=no-member
 
     if pid:  # Current process, pid is that of spawned process
-
         # Save the link with the process ID
         link.process_id = pid
         link.save_link()
@@ -107,7 +106,6 @@ def start_backend(
         print(f"Started link #{link.link_id}")
 
     else:  # Spawned process, PID is 0
-
         # Wait for the process ID to be avaiable
         while not link or not link.process_id:
             link = circlink.link.CircuitPythonLink.load_link_by_num(link_id)
