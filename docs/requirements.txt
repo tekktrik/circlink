@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2023 Alec Delaney
+#
+# SPDX-License-Identifier: MIT
+
+sphinx
+sphinx-rtd-theme
