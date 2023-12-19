@@ -9,12 +9,12 @@ repos:
       - id: detect-secrets
         name: Detect secrets
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v1.1.0
+    rev: v2.1.0
     hooks:
       - id: reuse
         name: Ensure REUSE compatibility
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: check-yaml
         name: Check YAML
@@ -31,7 +31,7 @@ repos:
       - id: trailing-whitespace
         name: Trim trailing whitespace
   - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
       - id: isort
         name: Sort imports
@@ -45,7 +45,7 @@ repos:
       - id: black
         name: Format via black
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.15.0
     hooks:
       - id: pyupgrade
         name: Upgrade python syntax
@@ -57,7 +57,7 @@ repos:
       - id: pydocstyle
         name: Check docstrings compliance
   - repo: https://github.com/PyCQA/pylint
-    rev: v2.16.1
+    rev: v3.0.3
     hooks:
       - id: pylint
         name: Lint via pylint

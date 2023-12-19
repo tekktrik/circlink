@@ -37,6 +37,7 @@ app.add_typer(config.config_app, name="config")
 app.add_typer(workspace.workspace_app, name="workspace")
 
 
+# pylint: disable=too-many-arguments
 @app.command()
 def start(
     read_path: str = Argument(..., help="The read path/pattern of file(s) to save"),

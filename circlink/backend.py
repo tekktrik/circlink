@@ -23,7 +23,7 @@ import circlink.ledger
 import circlink.link
 
 
-# pylint: disable=too-many-locals,too-many-branches
+# pylint: disable=too-many-locals,too-many-branches,too-many-arguments
 def start_backend(
     read_path: str,
     write_path: str,
