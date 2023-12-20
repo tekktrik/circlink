@@ -48,7 +48,7 @@ circlink = "circlink.cli:app"
 packages = ["circlink"]
 include-package-data = true
 
-[tools.setuptools.package-data]
+[tool.setuptools.package-data]
 templates = ["*.yaml"]
 
 [tool.setuptools.dynamic]
