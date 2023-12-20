@@ -31,6 +31,7 @@ _TableRowEntry: TypeAlias = Tuple[
 class CircuitPythonLink:
     """The link to the device."""
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         read_path: str,
