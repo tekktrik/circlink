@@ -40,7 +40,7 @@ repos:
           - VERTICAL_HANGING_INDENT
           - --tc
   - repo: https://github.com/psf/black
-    rev: 23.1.0
+    rev: 23.12.1
     hooks:
       - id: black
         name: Format via black
@@ -56,10 +56,10 @@ repos:
     hooks:
       - id: pydocstyle
         name: Check docstrings compliance
-  - repo: https://github.com/PyCQA/pylint
-    rev: v3.0.3
+  - repo: local
     hooks:
-      - id: pylint
-        name: Lint via pylint
+      - name: Run pylint
+        id: pylint
+        entry: pylint
+        language: system
         types: [python]
-        exclude: "^(docs/conf.py)"
