@@ -56,3 +56,7 @@ templates = ["*.yaml"]
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 optional-dependencies = {dev = {file = ["requirements-dev.txt"]}}
+
+[tool.ruff.lint]
+select = ["D", "PL", "UP", "I"]
+ignore = ["D213", "D203"]

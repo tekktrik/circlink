@@ -30,36 +30,11 @@ repos:
         name: Fix end of files
       - id: trailing-whitespace
         name: Trim trailing whitespace
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.11
     hooks:
-      - id: isort
-        name: Sort imports
-        args:
-          - --multi-line
-          - VERTICAL_HANGING_INDENT
-          - --tc
-  - repo: https://github.com/psf/black
-    rev: 23.12.1
-    hooks:
-      - id: black
-        name: Format via black
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
-    hooks:
-      - id: pyupgrade
-        name: Upgrade python syntax
-        args:
-          - --py38-plus
-  - repo: https://github.com/PyCQA/pydocstyle
-    rev: 6.3.0
-    hooks:
-      - id: pydocstyle
-        name: Check docstrings compliance
-  - repo: local
-    hooks:
-      - name: Run pylint
-        id: pylint
-        entry: pylint
-        language: system
-        types: [python]
+      - id: ruff-format
+        name: Format via ruff
+      - id: ruff
+        name: Check via ruff
+        args: [--fix]
