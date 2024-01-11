@@ -9,4 +9,4 @@ updates:
     schedule:
       interval: "daily"
     reviewers: ["tekktrik"]
-    versioning-strategy: increase
+    versioning-strategy: increase-if-necessary
