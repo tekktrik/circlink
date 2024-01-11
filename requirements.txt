@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-circup~=1.0
+circup~=1.5
 psutil~=5.9
 pyyaml~=6.0
 tabulate~=0.8
