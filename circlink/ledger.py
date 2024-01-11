@@ -2,8 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""
-Information and methods pertaining to the ledger file.
+"""Information and methods pertaining to the ledger file.
 
 Author(s): Alec Delaney (Tekktrik)
 """
@@ -21,8 +20,7 @@ LedgerEntry = namedtuple("LedgerEntry", ("filename", "link_id", "process_id"))
 
 
 def with_ledger(mode: str = "a"):
-    """
-    Use the ledger file.
+    """Use the ledger file.
 
     Manages locking and unlocking the file
     """
@@ -65,8 +63,7 @@ def with_ledger(mode: str = "a"):
 
 @with_ledger(mode="a")
 def append_to_ledger(entry: LedgerEntry, **args) -> Literal[True]:
-    """
-    Add a file to the ledger.
+    """Add a file to the ledger.
 
     Returns whether the file actually was added (True) or if it already
     existed (False).
@@ -78,8 +75,7 @@ def append_to_ledger(entry: LedgerEntry, **args) -> Literal[True]:
 
 @with_ledger(mode="w")
 def remove_from_ledger(entry: LedgerEntry, **args) -> Literal[True]:
-    """
-    Remove a file from the ledger.
+    """Remove a file from the ledger.
 
     Returns whether the file actually was removed (True) or if it didn't
     exist (False).

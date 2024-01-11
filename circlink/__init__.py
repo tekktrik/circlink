@@ -2,8 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""
-The main script handling CLI interactions for ``circlink``.
+"""The main script handling CLI interactions for ``circlink``.
 
 Author(s): Alec Delaney (Tekktrik)
 """

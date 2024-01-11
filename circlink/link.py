@@ -2,8 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""
-Information and methods pertaining to links and link files.
+"""Information and methods pertaining to links and link files.
 
 Author(s): Alec Delaney (Tekktrik)
 """
@@ -31,8 +30,7 @@ _TableRowEntry: TypeAlias = Tuple[
 class CircuitPythonLink:
     """The link to the device."""
 
-    # pylint: disable=too-many-arguments
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         read_path: str,
         write_path: str,
@@ -216,8 +214,7 @@ class CircuitPythonLink:
 
         return [file for file in all_potential if file.is_file()]
 
-    # pylint: disable=too-many-branches
-    def begin_monitoring(self) -> None:
+    def begin_monitoring(self) -> None:  # noqa: PLR0912
         """Monitor the listed file(s) for changes."""
         # Ensure the write path exists
         os.makedirs(self._write_path, exist_ok=True)
