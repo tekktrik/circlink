@@ -2,8 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""
-The sub-script for handling the workspace options for ``circlink``.
+"""The sub-script for handling the workspace options for ``circlink``.
 
 Author(s): Alec Delaney (Tekktrik)
 """

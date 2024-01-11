@@ -2,8 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""
-The main script handling CLI interactions for ``circlink``.
+"""The main script handling CLI interactions for ``circlink``.
 
 Author(s): Alec Delaney (Tekktrik)
 """
@@ -37,9 +36,8 @@ app.add_typer(config.config_app, name="config")
 app.add_typer(workspace.workspace_app, name="workspace")
 
 
-# pylint: disable=too-many-arguments
 @app.command()
-def start(
+def start(  # noqa: PLR0913
     read_path: str = Argument(..., help="The read path/pattern of file(s) to save"),
     write_path: str = Argument(
         ...,
@@ -282,8 +280,7 @@ def callback(
 
 
 def reset_cb() -> None:
-    """
-    Reset the app directory.
+    """Reset the app directory.
 
     Useful if you upgrade circlink and there are breaking changes.
     """

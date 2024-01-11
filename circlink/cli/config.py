@@ -2,8 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""
-The sub-script for handling the config options for ``circlink``.
+"""The sub-script for handling the config options for ``circlink``.
 
 Author(s): Alec Delaney (Tekktrik)
 """
@@ -42,7 +41,7 @@ def callback(
 
 @config_app.command()
 def view(
-    config_path: str = Argument("all", help="The setting to view, using dot notation")
+    config_path: str = Argument("all", help="The setting to view, using dot notation"),
 ) -> None:
     """View a config setting for circlink."""
     # Get the settings, show all settings if no specific on is specified

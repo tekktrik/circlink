@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2024 Alec Delaney
+#
+# SPDX-License-Identifier: MIT
+
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    reviewers: ["tekktrik"]
+    versioning-strategy: increase

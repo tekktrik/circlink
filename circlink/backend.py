@@ -2,8 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""
-Backend operations for circlink.
+"""Backend operations for circlink.
 
 Author(s): Alec Delaney (Tekktrik)
 """
@@ -23,8 +22,7 @@ import circlink.ledger
 import circlink.link
 
 
-# pylint: disable=too-many-locals,too-many-branches,too-many-arguments
-def start_backend(
+def start_backend(  # noqa: PLR0913, PLR0912
     read_path: str,
     write_path: str,
     base_dir: str,
