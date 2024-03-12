@@ -24,8 +24,6 @@ repos:
         name: Check JSON
       - id: mixed-line-ending
         name: Prevent mixed line endings
-      - id: requirements-txt-fixer
-        name: Fix requirements.txt
       - id: end-of-file-fixer
         name: Fix end of files
       - id: trailing-whitespace
