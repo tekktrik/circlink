@@ -7,70 +7,74 @@
 Author(s): Alec Delaney (Tekktrik)
 """
 
+import importlib.util
 import os
+import pkgutil
 import shutil
 import sys
 
 import circup
+import click
 import tabulate
-from typer import Argument, Exit, Option, Typer
 
 import circlink
 import circlink.backend
 import circlink.ledger
 import circlink.link
-from circlink.cli import config, workspace
 
-# Prevent running on non-POSIX systems that don't have os.fork()
-if os.name != "posix":
-    print("circlink is currently only available for Linux and macOS")
-    sys.exit(1)
 
-# Create the Typer apps
-app = Typer(
-    add_completion=False,
-    no_args_is_help=True,
-    help="Autosave local files to your CircuitPython board",
+@click.group()
+@click.version_option(package_name="circlink")
+def cli() -> None:
+    """Autosave local files to your CircuitPython board."""
+    circlink.ensure_app_folder_setup()
+
+
+@cli.command()
+@click.argument("readpath")
+@click.argument("writepath")
+@click.option(
+    "--path",
+    is_flag=True,
+    default=False,
+    help="Designate the write path as absolute or relative to the current directory",
 )
-app.add_typer(config.config_app, name="config")
-app.add_typer(workspace.workspace_app, name="workspace")
-
-
-@app.command()
+@click.option("-n", "--name", help="A name for the new link")
+@click.option(
+    "-r",
+    "--recursive",
+    is_flag=True,
+    default=False,
+    help="Whether the link glob pattern is recursive",
+)
+@click.option(
+    "-w",
+    "--wipe-destination",
+    is_flag=True,
+    default=False,
+    help="Wipe the write destination recursively before starting the link",
+)
+@click.option(
+    "-s",
+    "--skip-presave",
+    is_flag=True,
+    default=False,
+    help="Skip the inital save and write performed when opening a link",
+)
 def start(  # noqa: PLR0913
-    read_path: str = Argument(..., help="The read path/pattern of file(s) to save"),
-    write_path: str = Argument(
-        ...,
-        help="The write path of the directory to write files, relative to the CircuitPython board",
-    ),
+    readpath: str,
+    writepath: str,
     *,
-    path: bool = Option(
-        False,
-        "--path",
-        "-p",
-        help="Designate the write path as absolute or relative to the current directory",
-    ),
-    name: str = Option("", "--name", "-n", help="A name for the new link"),
-    recursive: bool = Option(
-        False, "--recursive", "-r", help="Whether the link glob pattern is recursive"
-    ),
-    wipe_dest: bool = Option(
-        False,
-        "--wipe-dest",
-        "-w",
-        help="Wipe the write destination recursively before starting the link",
-    ),
-    skip_presave: bool = Option(
-        False,
-        "--skip-presave",
-        "-s",
-        help="Skip the inital save and write performed when opening a link",
-    ),
+    path: bool,
+    name: str,
+    recursive: bool,
+    wipe_dest: bool,
+    skip_presave: bool,
 ) -> None:
     """Start a CircuitPython link."""
     circlink.backend.start_backend(
-        read_path,
-        write_path,
+        readpath,
+        writepath,
         os.getcwd(),
         path=path,
         name=name,
@@ -81,16 +85,19 @@ def start(  # noqa: PLR0913
     circlink.backend.set_cws_name("")
 
 
-@app.command()
+@cli.command()
+@click.argument("link_id")
+@click.option(
+    "-c",
+    "--clear",
+    is_flag=True,
+    default=False,
+    help="Clear the history of the specified link(s) as well",
+)
 def stop(
-    link_id: str = Argument(..., help="Link ID / 'last' / 'all'"),
-    clear_flag: bool = Option(
-        False,
-        "--clear",
-        "-c",
-        help="Clear the history of the specified link(s) as well",
-    ),
-) -> bool:
+    link_id: str,
+    clear_flag: bool,
+) -> None:
     """Stop a CircuitPython link."""
     # If stopping all links, stop links using the "last" option until done
     if link_id == "all":
@@ -99,21 +106,19 @@ def stop(
             circlink.backend.stop_backend(link_entry[0], hard_fault=False)
             if clear_flag:
                 circlink.backend.clear_backend(link_entry[0], hard_fault=False)
-        raise Exit()
+        return
 
     # If stopping the last link, calculate its link ID
     if link_id == "last":
         link_id = str(circlink.link.CircuitPythonLink.get_next_link_id() - 1)
         if link_id == "0":
-            print("There are no links in the history")
-            raise Exit(1)
+            raise click.ClickException("There are no links in the history")
 
     # Detect if the link ID is not valid
     try:
         link_id = int(link_id)
-    except ValueError as err:
-        print('Link ID must be the ID, "last", or "all"')
-        raise Exit(1) from err
+    except ValueError:
+        raise click.ClickException('Link ID must be the ID, "last", or "all"')
 
     # Stop the link, clear as well if requested
     circlink.backend.stop_backend(link_id)
@@ -121,13 +126,19 @@ def stop(
         circlink.backend.clear_backend(link_id)
 
 
-@app.command()
+@cli.command()
+@click.argument("link_id")
+@click.option(
+    "-f",
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Ignore warning and force clear from history",
+)
 def clear(
-    link_id: str = Argument(..., help="Link ID / 'last' / 'all'"),
+    link_id: str,
     *,
-    force: bool = Option(
-        False, "--force", "-f", help="Ignore warning and force clear from history"
-    ),
+    force: bool,
 ) -> None:
     """Clear the link from the history."""
     # If clearing all links, repetitively clear the last link
@@ -135,7 +146,7 @@ def clear(
         link_entries = circlink.link.get_links_list("*")
         for link_entry in link_entries:
             circlink.backend.clear_backend(link_entry[0], force=force, hard_fault=False)
-        raise Exit()
+        return
 
     # If clearing the last link link, calculate its link ID
     if link_id == "last":
@@ -146,21 +157,26 @@ def clear(
     # Detect if the link ID is not valid
     try:
         link_id = int(link_id)
-    except ValueError as err:
-        print('Link ID must be the ID, "last", or "all"')
-        raise Exit(1) from err
+    except ValueError:
+        raise click.ClickException('Link ID must be the ID, "last", or "all"')
 
     # Clear the link
     circlink.backend.clear_backend(link_id, force=force)
 
 
-@app.command()
+@cli.command()
+@click.argument("link_id", default="all")
+@click.option(
+    "-a",
+    "--abs_paths",
+    is_flag=True,
+    default=False,
+    help="Show the read path as absolute",
+)
 def view(
-    link_id: str = Argument("all", help="Link ID / 'last' / 'all' (default)"),
+    link_id: str,
     *,
-    abs_paths: bool = Option(
-        False, "--abs-path", "-a", help="Show the read path as absolute"
-    ),
+    abs_paths: bool,
 ) -> None:
     """List links in the history."""
     # For recursion purposes, note whether link ID is "last"
@@ -180,7 +196,9 @@ def view(
             int(link_id)
             pattern = "link" + link_id + ".json"
         except ValueError:
-            print('Please use a valid link ID, "last", or "all" (default)')
+            raise click.ClickException(
+                'Please use a valid link ID, "last", or "all" (default)'
+            )
 
     # Discard the link base directory for printing purposes
     link_infos = circlink.backend.view_backend(pattern, abs_paths=abs_paths)
@@ -188,14 +206,14 @@ def view(
     # Handle if no links available
     if not link_infos:
         if link_id == "all" or last_requested_flag:
-            print("No links in the history to view")
-            raise Exit()
-        print("This link ID is not in the history")
-        raise Exit(1)
+            raise click.echo("No links in the history to view")
+            return
+        raise click.ClickException("This link ID is not in the history")
 
 
-@app.command()
-def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> None:
+@cli.command()
+@click.argument("link_id")
+def restart(link_id: str) -> None:
     """Restart a link."""
     # Handle cases of "all" or "last", or parse link ID
     if link_id == "all":
@@ -210,19 +228,17 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
             int(link_id)
             pattern = "link" + link_id + ".json"
         except ValueError as err:
-            print('Please use a valid link ID, "last", or "all"')
-            raise Exit(1) from err
+            raise click.ClickException('Please use a valid link ID, "last", or "all"')
 
     # Get the list of links in history if possible
     link_list = circlink.link.get_links_list(pattern)
     if not link_list:
-        print("There are no links in the history to restart")
-        raise Exit(1)
+        raise click.ClickException("There are no links in the history to restart")
 
     # Attempt to restart and clear the link if it's not active
     for link in link_list:
         if link[2]:
-            print(f"Link #{link[0]} is active, not restarting this link.")
+            click.echo(f"Link #{link[0]} is active, not restarting this link.")
         else:
             circlink.backend.start_backend(
                 str(link[3]),
@@ -235,70 +251,42 @@ def restart(link_id: str = Argument(..., help="Link ID / 'last' / 'all'")) -> No
             circlink.backend.clear_backend(link[0])
 
 
-@app.command()
+@cli.command()
 def detect() -> None:
     """Attempt to detect a CircuitPython board."""
     device = circup.find_device()
     if device:
-        print("CircuitPython device detected:", device)
+        click.echo(f"CircuitPython device detected: {device}")
     else:
-        print("No CircuitPython device detected")
+        raise click.ClickException("No CircuitPython device detected")
 
 
-def about_cb() -> None:
+@cli.command()
+def about() -> None:
     """Display information about circlink."""
-    print("Originally built with love by Tekktrik")
-    print("Happy hackin'!")
-    raise Exit()
+    click.echo("Originally built with love by Tekktrik")
+    click.echo("Happy hackin'!")
 
 
-def version_cb() -> None:
-    """Display the current version of circlink."""
-    print(circlink.__version__)
-    raise Exit()
-
-
-@app.callback(invoke_without_command=True)
-def callback(
-    version: bool = Option(
-        False, "--version", "-v", help="Display the version of circlink"
-    ),
-    about: bool = Option(False, "--about", "-a", help="A bit about circlink"),
-    reset: bool = Option(
-        False, "--reset", help="Reset the circlink configuration settings"
-    ),
-) -> None:
-    """Display the current version of circlink."""
-    circlink.ensure_app_folder_setup()
-
-    if version:
-        version_cb()
-    if about:
-        about_cb()
-    if reset:
-        reset_cb()
-
-
-def reset_cb() -> None:
+def reset() -> None:
     """Reset the app directory.
 
     Useful if you upgrade circlink and there are breaking changes.
     """
     shutil.rmtree(circlink.APP_DIRECTORY)
-    print("Removed circlink app directory, settngs and history deleted!")
-    print("These will be created on next use of circlink.")
-    print("Please check the integrity of any files handled by circlink.")
-    raise Exit()
+    click.echo("Removed circlink app directory, settngs and history deleted!")
+    click.echo("These will be created on next use of circlink.")
+    click.echo("Please check the integrity of any files handled by circlink.")
 
 
-@app.command()
+@cli.command()
 def ledger() -> None:
     """View the ledger of files controlled by links."""
     # Get the list of ledger entries if possible
     ledger_entries = list(circlink.ledger.iter_ledger_entries())
     if not ledger_entries:
-        print("No files being tracked by circlink")
-        raise Exit()
+        click.echo("No files being tracked by circlink")
+        return
 
     # Display the process ID of links depending on settings
     table_headers = ("Write Path", "Link")
@@ -308,10 +296,45 @@ def ledger() -> None:
         ledger_entries = [entry[:-1] for entry in ledger_entries]
 
     # Print the table with the format specified in config settings
-    print(
+    click.echo(
         tabulate.tabulate(
             ledger_entries,
             headers=table_headers,
             tablefmt=circlink.get_settings()["display"]["table"]["format"],
         )
     )
+
+
+# Dynamically loading commands reused from circfirm, MIT License
+# https://github.com/tekktrik/circfirm/blob/main/circfirm
+
+
+def load_subcmd_folder(path: str, super_import_name: str) -> None:
+    """Load subcommands dynamically from a folder of modules and packages."""
+    subcmd_names = [
+        (modname, ispkg) for _, modname, ispkg in pkgutil.iter_modules((path,))
+    ]
+    subcmd_paths = [
+        os.path.abspath(os.path.join(path, subcmd_name[0]))
+        for subcmd_name in subcmd_names
+    ]
+
+    for (subcmd_name, ispkg), subcmd_path in zip(subcmd_names, subcmd_paths):
+        import_name = ".".join([super_import_name, subcmd_name])
+        import_path = subcmd_path if ispkg else subcmd_path + ".py"
+        module_spec = importlib.util.spec_from_file_location(import_name, import_path)
+        module = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(module)
+        source_cli: click.MultiCommand = getattr(module, "cli")
+        if isinstance(source_cli, click.Group):
+            subcmd = click.CommandCollection(sources=(source_cli,))
+            subcmd.help = source_cli.__doc__
+        else:
+            subcmd = source_cli
+        cli.add_command(subcmd, subcmd_name)
+
+
+# Load extra commands from the rest of the circfirm.cli subpackage
+cli_pkg_path = os.path.dirname(os.path.abspath(__file__))
+cli_pkg_name = "circlink.cli"
+load_subcmd_folder(cli_pkg_path, cli_pkg_name)
