@@ -19,9 +19,9 @@ jobs:
     - name: Install dev tools
       run: |
         pip install -r requirements-dev.txt
-    - name: Run pre-commit hooks
+    - name: Run pre-commit via make
       run: |
-        pre-commit run --all-files
+        make check
     - name: Build docs
       working-directory: docs
       run: sphinx-build -E -W -b html . _build/html
