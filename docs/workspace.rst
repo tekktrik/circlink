@@ -1,3 +1,7 @@
+..
+    SPDX-FileCopyrightText: 2022 Alec Delaney
+    SPDX-License-Identifier: MIT
+
 Working With Workspaces
 =======================
 

@@ -1,4 +1,8 @@
-CircLink
+..
+   SPDX-FileCopyrightText: 2022 Alec Delaney
+   SPDX-License-Identifier: MIT
+
+circlink
 ========
 
 .. image:: https://img.shields.io/readthedocs/circlink/latest
