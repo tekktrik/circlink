@@ -3,5 +3,5 @@
 # SPDX-License-Identifier: MIT
 
 pre-commit~=3.6
-sphinx~=7.2
+sphinx~=8.1
 sphinx-rtd-theme~=2.0
